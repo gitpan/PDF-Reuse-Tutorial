@@ -2,7 +2,7 @@ package PDF::Reuse::Tutorial;
 
 use strict;
 
-our $VERSION = '0.03';
+our $VERSION = '0.04';
 
 1;
 
@@ -1693,37 +1693,61 @@ When you run this program the PDF-file will be 53 kB.
 =head2 Barcodes
 
 PDF::Reuse can print barcodes, but most often you want more than that. You want
-e.g. the numbers in a form humans can read, you want a white background; 
-perhaps you want to rotate the pattern, change the size etc. So I have
-made a preliminary module for the distribution: Ean13.pm. You need
-GD::Barcode::EAN13 to run it. (I couldn't get a working version of GD for my
-computer so I had to change "use GD;" to "use autouse 'GD' => qw(gdSmallFont);",
-to run that module.) 
+e.g. the numbers in a form humans can read, you want a white box around, 
+perhaps you want to rotate the pattern, change the size etc. Then you can use
+PDF::Reuse::Barcode, which is a separate module you can download. Look at its
+documentation for a complete list of functions (= type of barcodes), and parameters. 
 
    # ex23_pl
 
    use PDF::Reuse;
-   use Ean13;
+   use PDF::Reuse::Barcode;
    use strict;
 
    prFile('doc/ex23.pdf');
 
-   prMbox(0, 0, 690, 735);
-   prForm( { file   => 'EUSA.pdf',
-             adjust => 1 } );
+   #################################################################
+   # First a rectangle is drawn in the upper part of the page
+   # just to show the normal white box around the barcodes
+   #################################################################
 
-   my $e = Ean13->new();
+   my $str = "q\n";                    # save the graphic state
+   $str   .= "0.9 0.5 0.5 rg\n";       # a fill color
+   $str   .= "10 400 440 410 re\n";    # a rectangle
+   $str   .= "b\n";                    # fill (and a little more)
+   $str   .= "Q\n";                    # restore the graphic state
 
-   $e->draw(x          => 70,
-            y          => 530,
-            value      => '1234567890123',
-            background => '1 1 1',
-            size       => 1.5);
+   prAdd($str);
+
+   #################################################
+   # Normal usage, but the size has been increased
+   #################################################
+ 
+   PDF::Reuse::Barcode::EAN13(x          => 70,
+                              y          => 700,
+                              value      => '1234567890123',
+                              size       => 1.5);
+
+
+   #########################################################
+   # A barcode "image" rotated 90 degrees counter clockwise
+   #########################################################
+
+   PDF::Reuse::Barcode::NW7(x          => 100,
+                            y          => 430,
+                            value      => '1234567890123',
+                            rotate     => 90);
+
+   ##################
+   #  Prolonged bars
+   ##################
+
+   PDF::Reuse::Barcode::IATA2of5(x          => 70,
+                                 y          => 200,
+                                 value      => '1234567890123',
+                                 prolong    => 4);
 
    prEnd();
-
-You can also have rotate, xSize and ySize, if you want more parameters for draw.  
-
 
 =head1 AUTHOR
 

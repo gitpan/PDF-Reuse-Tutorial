@@ -9,3 +9,6 @@ Revision history for Perl extension PDF::Reuse::Tutorial.
 0.03  Mon May 12 18:33:00 2003
    - Added a little section about how to run PDF::Reuse
      from Progress
+0.04  Thu June 5
+   - Changed last example to use PDF::Reuse::Barcode and
+     let it show 3 different barcode images
