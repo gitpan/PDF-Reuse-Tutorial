@@ -1,11 +1,11 @@
 package PDF::Reuse::Tutorial;
 
-use 5.008;
 use strict;
 
-our $VERSION = '0.02';
+our $VERSION = '0.03';
 
 1;
+
 __END__
 
 =head1 NAME
@@ -433,8 +433,7 @@ and barcodes they should be easy to store, restore and handle.
 
 In a real situation all data should be taken from an interactive program or a database. Here
 I have assigned everything directly in the program.
-
-The barcodes have not been really tested. 
+ 
 
     # ex7_pl
 
@@ -766,6 +765,86 @@ easy to use only Perl and one single program.
 
 An advantage with pipes or daemons is that you can get very good response times.
 
+=head2 "Mixing" output from Progress with Perl code
+
+Here is an end of a pipe that evaluates every sentence it receives, if it doesn't
+begin with the word 'file', in that case it evaluates the complete file:
+
+   # pipeEnd.pl
+   
+   use strict vars;
+   my $logFile = shift;
+   my ($line, $routine, @elem, $result);
+   if ($logFile)
+   {  open (LOG, ">$logFile") || die "Couldn't open $logFile, $! \n";
+   }
+   chomp($line = <STDIN>);
+   while ($line)
+   {   if ($line =~ m'^file\s+(.+)'o)
+       {   my $fileName = $1;
+           open (INFIL, "<$fileName") || die "Couldn't open $fileName, $!\n";
+           my $code;
+           while (<INFIL>)
+           { $code .= $_;
+           }
+           $result = eval ($code);
+           if (! $result)
+           {  $result = $@;
+           }
+           close INFIL;
+       }
+       else
+       {   $result = eval ($line);
+           if (! $result)
+           {  $result = $@;
+           }
+       }
+       if ($logFile)
+       {  
+          print LOG "$result $line\n";
+       } 
+       chomp($line = <STDIN>); 
+   } 
+   if ($logFile)
+   {   close LOG;
+   } 
+ 
+
+If you run it from a Progress program you can "mix" Progress and Perl statements
+like this:
+
+    /************************************************************************/
+    /* This is a Progress program that runs together with the Sports2000    */
+    /* database, which is a demonstration database that comes with Progress */
+    /************************************************************************/
+
+    DEF VAR str         AS CHAR                   NO-UNDO.
+    DEF VAR theFirst    AS LOGI  INIT "true"      NO-UNDO.
+    OUTPUT THROUGH perl.exe C:\temp\pdf\examples\pipeEnd.pl.
+    
+    PUT UNFORMATTED "use PDF::Reuse;" SKIP.
+    PUT UNFORMATTED "prFile('C:/temp/pdf/examples/Sports2000.pdf');" SKIP.
+
+    FOR EACH customer:
+        
+       IF theFirst THEN
+           theFirst = false.
+       ELSE
+           PUT UNFORMATTED "prPage();" SKIP.
+
+       PUT UNFORMATTED "prForm('C:/temp/pdf/examples/lastYear.pdf');" SKIP.        
+       str = "prText(107, 700, '" + customer.name + "');".
+       PUT UNFORMATTED str SKIP.
+       str = "prText(107, 685, '" + customer.address + "');".
+       PUT UNFORMATTED str SKIP.
+       str = "prText(107, 670, '" + customer.city + "');".
+       PUT UNFORMATTED str SKIP.
+
+    END.
+    PUT UNFORMATTED "prEnd();"
+
+
+
 =head2 Using PDF::Reuse from JScript/VBScript
 
 This little section is specific for Windows and is about how to make a very
@@ -877,7 +956,7 @@ in a ~-separated string and receive the return value in a similar way. (If you
 want to run programs like ex23_pl, you have to write specialized COM-objects.)
 
 This is an example in VBScript:
-    
+
     ' Test.vbs
     ' Use PDF::Reuse from VBScript
     '
@@ -1613,14 +1692,13 @@ When you run this program the PDF-file will be 53 kB.
 
 =head2 Barcodes
 
-This example has not really been tested, so that's why I have put it at the end.
-(Anyway it would be fairly easy to make changes if any problems would arise in
-"real life".) 
 PDF::Reuse can print barcodes, but most often you want more than that. You want
 e.g. the numbers in a form humans can read, you want a white background; 
 perhaps you want to rotate the pattern, change the size etc. So I have
 made a preliminary module for the distribution: Ean13.pm. You need
-GD::Barcode::EAN13 to run it.
+GD::Barcode::EAN13 to run it. (I couldn't get a working version of GD for my
+computer so I had to change "use GD;" to "use autouse 'GD' => qw(gdSmallFont);",
+to run that module.) 
 
    # ex23_pl
 
@@ -1663,31 +1741,3 @@ You get this tutorial free as it is, but NOTHING IS GUARANTEED to work, whatever
 implicitly or explicitly stated in this document, and everything you do, 
 you do AT YOUR OWN RISK - I will not take responsibility 
 for any damage, loss of money and/or health that may arise from the use of this document!
- 
- 
-   
- 
-
-  
-
-   
- 
-
-   
-  
-
-
-
-
-
-
-
-
-
-    
- 
- 
-   
-
-  
- 
