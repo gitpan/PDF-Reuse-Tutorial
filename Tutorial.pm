@@ -2,7 +2,7 @@ package PDF::Reuse::Tutorial;
 
 use strict;
 
-our $VERSION = '0.09';
+our $VERSION = '0.10';
 
 1;
 
@@ -98,7 +98,7 @@ the line "$line = '';". Save and run.
 
 Under the examples directory, there are some files, which you could use when you
 run the programs, so it might be a good idea to extract the programs to that
-directory. 
+directory. Also unzip the files from unzipThis.zip to the same directory. 
 
 The program only works when you have prepared the pod with '=for name begin' and
 '=for end', and that has been done with this module, B<PDF::Reuse::Scramble> and
@@ -524,7 +524,6 @@ I have assigned everything directly in the program.
     my $x6         = 506;               
     my $y          = $itemLines;                      
     my $step       = 12;               # Distance between lines (fontsize = 10)
-    my $width      = 5.83;             # character width (approx 7/12 * fontsize ? )
     my $pageNo;
     my $form       = 'ReceiptSmall.pdf';
 
@@ -570,15 +569,13 @@ I have assigned everything directly in the program.
 
     for my $item (@items)
     {  my @detail = @$item;
-       ra($x0, $y, "$detail[0]." );
+       prText($x0, $y, "$detail[0].", 'right' );
        prText($x1, $y, $detail[1] );
-       ra($x2, $y, $detail[2]); 
-       my $price = sprintf("%.2f", $detail[3]);
-       ra($x3, $y, $price);
+       prText($x2, $y, $detail[2], 'right'); 
+       prText($x3, $y, sprintf("%.2f", $detail[3]), 'right');
        my $itemSum = ($detail[2] * $detail[3]);
        $sum += $itemSum;
-       $itemSum = sprintf("%.2f", $itemSum );
-       ra($x4, $y, $itemSum);
+       prText($x4, $y, sprintf("%.2f", $itemSum ), 'right');
        prText($x5, $y, 'SEK');
        prText($x6, $y, $detail[4]);
    
@@ -597,30 +594,20 @@ I have assigned everything directly in the program.
 
     my $vat = $sum * 0.25;
     prText($x2 - 12, $y, '(Included VAT');
-    $vat = sprintf("%.2f", $vat);
-    ra($x4, $y, $vat);
+    prText($x4, $y, sprintf("%.2f", $vat), 'right');
     prText($x5, $y, 'SEK)');
     $y -= $step;
     prText($x2, $y, 'Sum to pay');
     $sum = sprintf("%.2f", $sum);
-    ra($x4, $y, $sum);
+    prText($x4, $y, $sum, 'right');
     prText($x5, $y, 'SEK');
     $y -= $step;
     prText($x1, $y, "Paid      $payMethod");
-    ra($x4, $y, $paid);
+    prText($x4, $y, $paid, 'right');
     prText($x5, $y, 'SEK');
     pageEnd();
 
     prEnd(); 
-
-    ##########################################################################
-    #  Subroutine to right adjust and print
-    ##########################################################################
-    sub ra                         
-    {  my ($X, $Y, $str) = @_;
-       $X -= (length($str)* $width);
-       prText($X, $Y, $str);
-    }
 
     ##########################################################################
     #  To print before the end of the page
@@ -1220,40 +1207,37 @@ with references and links.
 
 =for end
 
-=head2 Embedded Links
+=head2 Hyperlinks
 
-You want to embed links in your document.
+You want to embed links in your document. Then you can use the subroutine hyperLink
+from PDF::Reuse::Util, or you can use prLink for more detail control.
 
-Include "Button.js" from a previous example, and run the function "Sensitive" for
-every area where you want a link.
-
-=for embedded.pl begin
+=for hyperlinks.pl begin
 
      use PDF::Reuse;
+     use PDF::Reuse::Util;
      use strict;
     
-     my ($pageNo, $x, $y, $length, $depth, $link, $text, $jsCode);
-     prFile('doc/Embedded.pdf');
+     prFile('doc/hyperLink.pdf');
    
-     prJs('Button.js');
+     # ...
+
+     my ($x, $position) = prText(25, 700, "This is written before the link  ");
+     hyperLink( $position, 700, 'Press this link',
+                    'http://www.purelyInvented.com/info.html' ); 
      
      # ...
 
-     $pageNo = 0;           # First page for Acrobat JavaScript
-     $x      = 40;          # upper LEFT corner
-     $y      = 530;         # UPPER left corner
-     $length = 100;         # length of the sensitive area
-     $depth  = 100;         # depth of the sensitive area
-     $link   = 'http://127.0.0.1:80/theDocument.pdf';
-     $text   = 'Show this as a tool tip text';
-
-     $jsCode = "Sensitive($pageNo,$x, $y, $length, $depth,
-               \"get('$link')\", \"$text\");"; 
-
-     prInit($jsCode);
+     ($x, $position) = prText(25, 650, "This is written before the second link  ");
+     my ($from, $to) = prText($position, 650, "Text for the second link");
      
-     # ...
-     
+     prLink( {page   => 1,
+              x      => $position,
+              y      => 650,
+              width  => ($to - $from),
+              height => 15,
+              URI    => 'http://www.purelyInvented.com/info.html' } );
+
      prEnd();
 
 =for end
@@ -2404,11 +2388,11 @@ You build a menu structure which is transformed to a function by the subroutine
 
 =head1 AUTHOR
 
-Lars Lundberg elkelund@worldonline.se
+Lars Lundberg : elkelund @ worldonline . se
 
 =head1 COPYRIGHT
 
-Copyright (C) 2003 Lars Lundberg, Solidez HB. All rights reserved.
+Copyright (C) 2003 - 2004 Lars Lundberg, Solidez HB. All rights reserved.
 This documentation is free; you can redistribute it and/or
 modify it under the same terms as Perl itself.
 
