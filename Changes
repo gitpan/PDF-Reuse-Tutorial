@@ -1,5 +1,8 @@
 Revision history for Perl extension PDF::Reuse::Tutorial.
 
+0.08  Tue Nov 11 2003
+      Updated with the new parameters for forms and images from 
+      PDF::Reuse version 0.18
 0.07  Thu Oct 23 2003
       Added an example about "Filling in a form without 
       spending a fortune"

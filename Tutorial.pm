@@ -2,7 +2,7 @@ package PDF::Reuse::Tutorial;
 
 use strict;
 
-our $VERSION = '0.07';
+our $VERSION = '0.08';
 
 1;
 
@@ -81,13 +81,13 @@ B<N.B. There are no model programs in this document, just examples.>
    # ex1_pl
 
    use PDF::Reuse;                       # Mandatory  
-   prFile('ex1.pdf');                    # File name is mandatory
+   prFile('ex1.pdf');                    # Mandatory, with or without a file name
    prText(250, 650, 'Hello World !');       
    prEnd();                              # Mandatory
 
-A file name is necessary. The line with prText is a directive to put a text 250 pixels
-to the right and 650 pixels up. If you haven't stated anything else the font will be
-Helvetica and 12 pixels, the page format will be 595 pixels wide and 842 pixels high.
+The line with prText is a directive to put a text 250 pixels to the right and 650
+pixels up. If you haven't stated anything else the font will be Helvetica and 12
+pixels, the page format will be 595 pixels wide and 842 pixels high.
 Later on you will see how to change that. There are many other default values.
 
 If you skip the line with prText, you get an empty page. In fact that can be very
@@ -338,7 +338,7 @@ You can skip this example, if you think 46 kB is a good size for the template fo
 receipts.
 
 I reuse 1 font from the previous example, and rewrite the template to get it smaller.
-You need PDF::API2::Util to get a color. If you haven't got that module, you could
+You can use PDF::API2::Util to get a color. If you haven't got that module, you could
 use '0 0 0.9333' as blue2.
 In the distribution there is a program 'reuseComponent_pl'. Run it to see the
 names of included fonts: 
@@ -1027,44 +1027,28 @@ do it repeatedly, the performance is quit acceptable.
 
 The best way to import an image, is to take it from  another PDF-file:
 
-   # ex11_pl
-
-   use PDF::Reuse;
-   use strict;
-
-   prFile('doc/ex11.pdf');
-   prMoveTo(75, 645);                  # Where to put the image
-   prScale(0.6, 0.6);                  # Scale the image
-   prImage('doc/LetterB.pdf', 1);      # Take an image from page 1
-    
-   prEnd();
-
-Alternatively you could put the parameters for prImage in a hash:
-
-   # ex12_pl
+  # ex12_pl
 
    use PDF::Reuse;
    use strict;
 
    prFile('doc/ex12.pdf');
-   prMoveTo(75, 645);
-   prScale(0.6, 0.6);
-   prImage( 
-             {  file    => 'letterB.pdf',
-                page    => 1,
-                imageNo => 1
-             } 
-          );
+   
+   prImage(  { file    => 'doc/letterB.pdf',
+               page    => 1,
+               imageNo => 1,
+               x       => 75,
+               y       => 645,
+               size    => 0.6 }  );
     
    prEnd();
 
 Use reuseComponent_pl to see which images you can take from a PDF-file.
 
-(If you would have used 'lastYear.pdf' instead of 'letterB.pdf' in ex11_pl or
-ex12_pl you would have had the image reversed when you extract it. PDFMaker
-defines it like that, I don't know why. Perhaps life is not supposed to be
-too easy. It would have been necessary to reverse the image with the 
-transformation matrix.)  
+(If you would have used 'lastYear.pdf' instead of 'letterB.pdf' in ex12_pl you
+would have had the image reversed when you extract it. PDFMaker defines it like
+that, I don't know why. Perhaps life is not supposed to be too easy. It would have
+been necessary to reverse the image with the transformation matrix.)  
 
 =head2 Adding a document
 
@@ -1129,8 +1113,7 @@ be scaled independently.
     my $col1 = 43;                     # First column    
     my $col2 = 296;                    # Second column
     my $step = 145.126;                # Height of the card
-    my $string;
-
+    
     prDocDir("doc");
     prFile('BizCard.pdf');
 
@@ -1152,23 +1135,23 @@ be scaled independently.
     {  $xScale = $yScale;
     }
     while ($y < 720)
-    {   $string .= "q\n";
-        $string .= "$xScale 0 0 $yScale $col1 $y cm\n";  # scale and "move to" 
-        $string .= "/$form Do\n";
-        $string .= "Q\n";
-        $string .= "q\n";
-        $string .= "$xScale 0 0 $yScale $col2 $y cm\n";  # scale and "move to"
-        $string .= "/$form Do\n";
-        $string .= "Q\n";
+    {   prForm ( {file   => 'myFile.pdf',
+                  x      => $col1,
+                  y      => $y,
+                  xsize  => $xScale,
+                  ysize  => $yScale });
+
+        prForm ( {file   => 'myFile.pdf',
+                  x      => $col2,
+                  y      => $y,
+                  xsize  => $xScale,
+                  ysize  => $yScale });
+        
         $y += $step;
     }
-    prAdd($string);   
+       
     prEnd();
- 
 
-When you call prForm(), you get an internal name of the form, and then you can use
-this name together with the primitive PDF-operators. Acrobat or Acrobat Reader will
-understand what you are referring to.    
 
 =head2 Defining interactive fields programmatically
 
@@ -1225,7 +1208,8 @@ this:
           myRec[2] = myRec[0] + 140;             // length of the fill-in field
 
           var tf1         = this.addField(labelText[i], "text", thePage, myRec);
-          tf1.fillColor   = color.ltGray;
+          tf1.fillColor   = ["RGB", 1, 1, 0.94];
+          tf1.strokeColor = ["RGB", 0.7, 0.7, 0.6];
           tf1.textColor   = color.black;
           tf1.borderStyle = border.s;
           tf1.textSize    = 12;
@@ -1804,7 +1788,8 @@ The file with JavaScript functions could look a little like this
           l = x + 140;             // length of the fill-in field
 
           var tf1         = this.addField(labelText[i], "text", page, [x,y,l,d]);
-          tf1.fillColor   = color.ltGray;
+          tf1.fillColor   = ["RGB", 1, 1, 0.94];
+          tf1.strokeColor = ["RGB", 0.7, 0.7, 0.6];
           tf1.textColor   = color.black;
           tf1.borderStyle = border.s;
           tf1.textSize    = 12;
