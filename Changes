@@ -1,5 +1,10 @@
 Revision history for Perl extension PDF::Reuse::Tutorial.
 
+0.09  Tue Feb 3 2004
+      Restructured the contents a little. Added a snippet of code to extract the
+      programs etc. from the POD. Added a warning about JavaScript and webpdf.api
+      Moved examples from PDF::Reuse here.
+
 0.08  Tue Nov 11 2003
       Updated with the new parameters for forms and images from 
       PDF::Reuse version 0.18

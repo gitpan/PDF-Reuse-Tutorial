@@ -2,7 +2,7 @@ package PDF::Reuse::Tutorial;
 
 use strict;
 
-our $VERSION = '0.08';
+our $VERSION = '0.09';
 
 1;
 
@@ -18,7 +18,6 @@ In this tutorial I will show some aspects of PDF::Reuse, so you should be able
 to use it in your own programs. Most important is how to produce and B<reuse> PDF-code,
 and then if you are interested, you can look at Graphics and JavaScript, so you can
 to do special things.
-
 
 =head2 Reusing code:
 
@@ -51,14 +50,63 @@ stream with prAdd(), has to follow the PDF syntax completely.
 =head2 JavaScript:
 
 You can add JavaScript to your PDF-file programmatically. This works with Acrobat
-Reader 5.1 or Acrobat 5.0 and higher versions.
+Reader 5.0.5 or Acrobat 5.0 and higher versions.
+
 You should have the "Acrobat JavaScript Object Specification" by hand. If you
 haven't got Acrobat, you can probably download it from http://partners.adobe.com/asn/developer/technotes/acrobatpdf.html.
 It is technical note # 5186. 
 JavaScript for HTML and PDF differs so much that you need the manual, even if
 you know JavaScript very well.
 
- 
+B<WARNING ABOUT JAVASCRIPT: 
+There is a complication with Acrobat but not with the Reader. Acrobat has a plug in, 
+"webpdf.api", which converts documents fetched over the net, also PDF-documents !!!
+When it does its' conversions, there is a great risk that JavaScripts will be lost.>
+
+=head2 Extracting the programs from this document
+
+Here is a snippet of code to extract the programs from this documentation.
+
+   use strict;
+   my ($dir, $pod);
+
+   print "From which file(pod?) shall I extract files? ";
+   chomp($pod = <STDIN>);
+   print "To what directory shall I write the files?   ";
+   chomp($dir = <STDIN>);
+
+   if (! $dir)
+   {  $dir = './'; }
+   elsif ($dir !~ m'\/$'o)
+   {  $dir .= '/'; }
+
+   open (IN, "$pod") || die "Couldn't open $pod, $! aborts\n";
+   while (my $line = <IN>)
+   {  if ($line =~ m'^\=for\s+([\w\d\.\\\/]+)\s+begin'o)
+      {  my $srcFile = $dir . $1;
+         open (OUT, ">$srcFile") || die "Couldn't open $srcFile, $! aborts\n";
+         $line = '';   
+      }
+      elsif ($line =~ m'^\=for.+end'o)
+      {  close OUT; 
+      }   
+      print OUT $line if OUT;
+   }  
+
+Copy and paste. If you need '#!/usr/bin/perl -w' or something like that, modify
+the line "$line = '';". Save and run.
+
+Under the examples directory, there are some files, which you could use when you
+run the programs, so it might be a good idea to extract the programs to that
+directory. 
+
+The program only works when you have prepared the pod with '=for name begin' and
+'=for end', and that has been done with this module, B<PDF::Reuse::Scramble> and
+B<PDF::Reuse::SimpleChart>.
+
+=head1 Ordinary tasks
+
+
 I have developed PDF::Reuse in a Windows environment, so I don't use the line
 
     #!/usr/bin/perl -w
@@ -77,13 +125,15 @@ line with prFile(..) in most examples with the lines:
 B<N.B. There are no model programs in this document, just examples.>
 
 =head2 A very basic program
-   
-   # ex1_pl
+
+=for basic.pl begin
 
    use PDF::Reuse;                       # Mandatory  
    prFile('ex1.pdf');                    # Mandatory, with or without a file name
    prText(250, 650, 'Hello World !');       
    prEnd();                              # Mandatory
+
+=for end
 
 The line with prText is a directive to put a text 250 pixels to the right and 650
 pixels up. If you haven't stated anything else the font will be Helvetica and 12
@@ -98,7 +148,7 @@ and to close the current file.
 
 =head2 Page breaks
 
-    # ex2_pl
+=for pageBreaks.pl begin
 
     use PDF::Reuse;
     use strict;                            
@@ -111,21 +161,22 @@ and to close the current file.
     {   prText(250, 650, "This is page $i");       
         prPage();                              # Page break
     }
-    prEnd();                               
+    prEnd();
+
+=for end                               
 
 This little program gives you a hint why I wrote the module as functional. It is slow to start,
 because the module is big, but then it should be fast. On my old computer it defines at least
 a thousand pages per second, and the capacity should be sufficient. You can easily
 increase the number of pages to 100 000.
 
-
 =head2 Small files
 
 This program is not as fast as the previous one. It is internally more complicated.
 On my PC with Windows, it also seems like the operating system needs much
-time to catalogue each file. 
+time to catalogue each file.
 
-    # ex3_pl
+=for smallFiles.pl begin
 
     use PDF::Reuse;
     use strict;                            
@@ -139,6 +190,8 @@ time to catalogue each file.
         prText(180, 650, 'This is the first and only page');                                                    
     }
     prEnd();
+
+=for end
 
 Here we produce 1000 documents. When you define a new file the old one is automatically written. You have to set font and font size for each
 file if you are not satisfied with Helvetica 12.      
@@ -166,9 +219,9 @@ or template.
 When you downloaded the module I hope you also got 'lastYear.pdf' which is the PDF-file
 that is the template for the letter. A little text file holds names and addresses.
 In reality these things should be taken from a database, and you could produce a file
-for many thousand customers.  
+for many thousand customers.
 
-    # ex4_pl
+=for startToReuse.pl begin  
     
     use PDF::Reuse;
     use strict;
@@ -204,7 +257,9 @@ for many thousand customers.
          prPage();
     }
     prEnd();
-    close INFILE;         
+    close INFILE;
+
+=for end         
 
 Look at the template. It is 50 kB and the file we just produced has 5 pages, using
 the template on every page. Yet our new file is only 43 kB. It looks a little bit
@@ -245,9 +300,9 @@ a little bit harder, but it is possible to get a better result.
 
 This time we produce the template also. In the distribution you received a little text file
 'Lastyear.txt' and a little jpeg-image with the signature of the vice president.
-You also need Image::Info.
+You also need Image::Info. (smallLetter.pl)
 
-    # ex5_pl
+=for smallLetter.pl begin 
     
     use PDF::Reuse;
     use Image::Info qw(image_info dim);        # To get the dimensions of jpeg-images
@@ -311,7 +366,9 @@ You also need Image::Info.
     }    
  
     close INFILE;
-    prEnd;  
+    prEnd;
+
+=for end  
 
 This template will be smaller than 5 kB. The produced letters could also be sent by
 e-mail.
@@ -348,9 +405,9 @@ names of included fonts:
 and you get 'myFile.pdf'. (The program needs the module PDF, which is totally
 independent of PDF::Reuse. PDF sometimes croaks about 'bad object reference >'
 when the info-part of the PDF-file is missing. That doesn't hinder 'myFile.pdf'
-from being created.)  
+from being created.) 
 
-    # ex6_pl
+=for receiptTemplate.pl begin 
 
     use PDF::Reuse;
     use PDF::API2::Util;          
@@ -412,8 +469,10 @@ from being created.)
 
     prEnd();
 
+=for end
+
 Now your template will be 4,84 kB. If that still is too big for you, you can replace
-  
+
     prForm( { file   => 'Receipt.pdf', 
               page   => 1,
               effect => 'load' } );
@@ -441,9 +500,8 @@ and barcodes they should be easy to store, restore and handle.
 
 In a real situation all data should be taken from an interactive program or a database. Here
 I have assigned everything directly in the program.
- 
 
-    # ex7_pl
+=for receipt.pl begin
 
     use PDF::Reuse;
     use Digest::MD5;
@@ -600,6 +658,8 @@ I have assigned everything directly in the program.
        prText(386, 649, $cashier);
     }
 
+=for end
+
 When I run this program with the template of 4,84 kB the final file was 6,95 kB.  
 In this special case the log was 2,07 kB and compressed 1,00 kB. It would have had
 practically the same size if you had used the template of 46 kB.
@@ -632,6 +692,856 @@ After that, prLog puts a tag, <S1>, in the log. Now a hexadecimal digest is prod
 and printed.  With this check number method you need the log to verify that a document
 is consistent. If that is good or not depends on your needs.
 
+=head2 Importing an image
+
+The best way to import an image, is to take it from  another PDF-file:
+
+=for importImage.pl begin
+
+   use PDF::Reuse;
+   use strict;
+
+   prFile('doc/ex12.pdf');
+   
+   prImage(  { file    => 'doc/letterB.pdf',
+               page    => 1,
+               imageNo => 1,
+               x       => 75,
+               y       => 645,
+               size    => 0.6 }  );
+    
+   prEnd();
+
+=for end
+
+Use reuseComponent_pl to see which images you can take from a PDF-file.
+
+(If you would have used 'lastYear.pdf' instead of 'letterB.pdf' in ex12_pl you
+would have had the image reversed when you extract it. PDFMaker defines it like
+that, I don't know why. Perhaps life is not supposed to be too easy. It would have
+been necessary to reverse the image with the transformation matrix.)
+
+=head2 Adding a document
+
+You can add a document with many pages to the current document with the function
+prDoc() like this:
+
+=for addDocument.pl begin
+
+    use PDF::Reuse;
+    use strict;
+
+    prFile('doc/ex13.pdf');
+    prForm('ex1.pdf');
+    prText(100, 500, 'This is put on the first page');
+    prPage();
+    prDoc('doc/piped.pdf');
+    prPage();
+    prForm('ex1.pdf');
+    prText(100, 500, 'This is put on the last page');
+
+    prEnd();
+
+=for end
+
+The document from previous example is used for the first and last pages. In between
+a document, with all of its pages, is put. Graphic, and for the first prDoc or prDocForm also interactive, 
+functions are included. As usual you loose outlines, info and metadata which I haven't
+implemented.
+
+prDoc() is not sensitive to the structure of the pages. Each page can consist of
+many streams. But you cannot influence the layout of the included pages
+in any other way than through JavaScript, and you cannot write anything to the pages.
+Also the routine is a little bit slow, but it has a positive
+side-effect: If you use it with old PDF-files which have been updated many
+times, it only takes the current parts of the files, so the result can be trimmed down. 
+
+=head2 A business card
+
+A PDF-page can often be used as a unit. You can resize it and display it many times
+on a new page. For this example I designed a little page with Mayura Draw. (When this text was 
+written, you could download the program from http://www.mayura.com and evaluate it for 30 days.) It produces
+files in a variant of postscript which can be transformed to PDF by the distiller.
+If you want, you can also get PDF-files directly from Mayura Draw, but the files might
+become a little big, because it doesn't compress images. 
+
+In the code below you produce 10 cards per page of paper. You print the cards on a 
+special paper where each card should be 89 * 51 mm. (I suppose that is close to
+253.2584 * 145.126 pixels) The cards start 43 pixels from the left and 59.76 from
+the bottom.
+
+Make a PDF-file with your name, photo and so on and replace 'myFile.pdf' with the 
+name of your file. You get the best results if the proportions of your file is
+something like 89/51 (width/height), but that is not so important. If you haven't
+got a photo, you can remove the if..else sentence. Then you can let the x and y-axes
+be scaled independently.
+
+=for bizCard.pl begin
+
+    use PDF::Reuse;
+    use strict;
+
+    my $y    = 59.76;                  # Margin at the bottom
+    my $col1 = 43;                     # First column    
+    my $col2 = 296;                    # Second column
+    my $step = 145.126;                # Height of the card
+    
+    prDocDir("doc");
+    prFile('bizCard.pdf');
+
+    my @vec = prForm ( {file   => 'myFile.pdf', # Add the form definitions
+                        effect => 'add' }       # and get data about the form
+                     );
+    ###########################################################################
+    # The list from prForm contains $internalName, $lowerLeftX, $lowerLeftY,
+    # $upperRightX, $upperRightY, $numberOfImages
+    ###########################################################################
+
+    my $form = $vec[0];                       
+    my $xScale = 253.2584 / ($vec[3] - $vec[1]);
+    my $yScale = 145.126 / ($vec[4] - $vec[2]);
+    if ($xScale < $yScale)
+    {  $yScale = $xScale;
+    }
+    else
+    {  $xScale = $yScale;
+    }
+    while ($y < 720)
+    {   prForm ( {file   => 'myFile.pdf',
+                  x      => $col1,
+                  y      => $y,
+                  xsize  => $xScale,
+                  ysize  => $yScale });
+
+        prForm ( {file   => 'myFile.pdf',
+                  x      => $col2,
+                  y      => $y,
+                  xsize  => $xScale,
+                  ysize  => $yScale });
+   
+        $y += $step;
+    }  
+    prEnd();
+
+=for end
+
+=head2 Defining interactive fields programmatically
+
+The "normal" way to define interactive fields, is to use Acrobat as a screen
+painter. You draw your fields, write your JavaScript, or cut and paste, and so
+on. It is convenient for single files, but if you are going to produce thousands
+of files, which are not going to look exactly the same, it is not very practical.
+I guarantee you get tired very quickly.
+
+Then it is better to do the job programmatically. Here is an example:
+
+You need an Acrobat JavaScript which defines some fields. It can look like
+this (script1.js):
+
+=for script1.js begin
+
+   function nameAddress(page, xpos, ypos)
+   {  var thePage = 0;
+      if (page)
+      {   thePage = page;
+      }
+      var myRec = [ 40, 650, 0, 0];              // default position
+      if (xpos)
+      {   myRec[0] = xpos;
+      }
+      if (ypos)
+      {   myRec[1] = ypos;
+      }
+	
+      var labelText = [ "Mr/Ms", "First_Name", "Surname",
+                        "Adress", "City", "Zip_Code", "Country",
+                        "Phone", "Mobile_Phone", "E-mail",
+                        "Company", "Profession", "Interest_1", "Interest_2",
+                        "Hobby" ];   
+   
+      for ( var i = 0; i < labelText.length; i++)
+      {   myRec[2] = myRec[0] + 80;               // length of the label
+          myRec[3] = myRec[1] - 15;               // height ( or depth if you like)
+
+          // a label field is created
+
+          var fieldName = labelText[i] + "Label";
+          var lf1       = this.addField(fieldName, "text", thePage, myRec);
+          lf1.fillColor = color.white;
+          lf1.textColor = color.black;
+          lf1.readonly  = true;
+          lf1.textSize  = 12;
+          lf1.value     = labelText[i];
+          lf1.display   = display.visible;
+
+          // a text field for the customer to fill-in his/her name is created   
+ 
+          myRec[0] = myRec[2] + 2;               // move 2 pixels to the right 
+          myRec[2] = myRec[0] + 140;             // length of the fill-in field
+
+          var tf1         = this.addField(labelText[i], "text", thePage, myRec);
+          tf1.fillColor   = ["RGB", 1, 1, 0.94];
+          tf1.strokeColor = ["RGB", 0.7, 0.7, 0.6];
+          tf1.textColor   = color.black;
+          tf1.borderStyle = border.s;
+          tf1.textSize    = 12;
+          tf1.display     = display.visible;
+      
+          myRec[0] = myRec[0] - 82    // move 82 pixels to the left
+          myRec[1] = myRec[1] - 17;   // move 17 pixels down
+      } 
+         
+   }
+
+=for end
+
+A little program that uses the script could look like this:
+
+=for interactive1.pl begin
+
+   use PDF::Reuse;
+
+   prDocDir('doc');
+   prFile('Ex15.pdf');
+   prCompress(1);                   # To compress new JavaScripts
+   prJs('script1.js');              # To include the JavaScript
+   prInit('nameAddress();');        # To call nameAddress(); at start up
+   prEnd();
+
+=for end
+
+Within the parenthesis of prInit(), you can put JavaScript code to be executed when
+the PDF-file is opened. But there is an important limitation you should be aware of.
+When the file is opened the JavaScript interpreter I<is working>, but it is B<only 
+partially aware of old JavaScripts or interactive fields already defined.> That's
+why all functions you refer to within prInit(), should have been included with prJs()
+first. The JavaScript interpreter has simply not read the document, when the
+initiation is done.
+
+B<Mind the warning under JavaScript in the beginning of this document.> 
+
+=head2 Initiate interactive fields
+
+In PDF::Reuse there is one function that assigns values to interactive fields. It is
+prField($fieldName, $fieldValue). It works also for old interactive fields in the file.
+(I don't know why.) When you use this function, you have to spell the fieldname exactly as it is done in
+PDF-file. The spelling is case-sensitive.(And please, avoid initial spaces in names, 
+when you define new fields.)
+
+We add values to a few fields in the previous file:
+
+=for prField.pl begin
+
+   use PDF::Reuse;
+
+   prDocDir('doc');
+   prFile('Ex16.pdf');
+   prJs('script1.js');              # To include the JavaScript
+   prInit('nameAddress();');
+   prField('First_Name', 'Lars');
+   prField('Surname', 'Lundberg');
+   prField('City', 'Stockholm');
+   prField('Country', 'Sweden');       
+   prEnd();
+
+=for end
+
+This example uses JavaScript, so remember the general warning.
+
+=head2 A variant of previous example
+
+You could had written the previous example like this also (if you saved the 
+file Ex16.pdf after the fields had been created):
+
+=for prDocForm.pl begin
+
+   use PDF::Reuse;
+   prDocDir('doc');
+   prFile('Ex17.pdf');
+   prField('First_Name', 'Lars');
+   prField('Surname', 'Lundberg');
+   prField('City', 'Stockholm');
+   prField('Country', 'Sweden');
+   prDocForm('doc/Ex16.pdf');
+   prEnd();
+
+=for end 
+
+The prDocForm(), works like prForm() but also takes interactive fields and
+JavaScripts with it. If you would have used prForm() here, you would only have received
+an empty page. That might be a little confusing, but the graphic elements and the
+interactive ones, follow two different logical lines. It can be difficult to see what
+is graphic and what is interactive, if you haven't got Acrobat. 
+
+You should put all your PrField, prJs and prInit before the first prDocForm or prDoc,
+because all JavaScripts and interactive fields are merged when the program starts
+to analyze the first interactive page it is going to include. If you have many calls
+to prDoc or prDocForm in your program, only the first one will bring JavaScripts and
+interactive functions with it, the rest of the times only graphic elements within
+the pages are taken. Perhaps I should try to solve these problems in a future
+version of PDF::Reuse.  
+
+=head2 A popup menu with common links
+
+You have some PDF-files on your web site, and now you want to add a standard popup 
+menu with links to your documents.
+
+To accomplish this, we create 2 JavaScrips.
+
+The first JavaScript, "Button.js", consists of 3 functions. "Sensitive" defines an
+area. If you move your mouse into it, you get a tool tip text, and if you click within
+it you trigger an action. "get" fetches something over the net. "But" creates a
+visible button.
+
+=for Button.js begin
+
+    function Sensitive(page, x, upperY, length, depth, action, toolTip)
+    {  var myRec = [ 400, 50, 100, 12];
+	    if (x)
+	    {  myRec[0] = x;
+	    }
+	    if (upperY)
+	    { myRec[1] = upperY;
+	    }
+   
+       if (length)
+       {  myRec[2] = myRec[0] + length;
+       }
+       if (depth)
+       {  myRec[3] = myRec[1] - depth;
+       }
+
+       var fName = 'p' + page + 'x' + x + 'y' + upperY; 
+       var f = this.addField(fName,"button", page , myRec);
+       if (action)
+       {   f.setAction("MouseUp", action);
+       }
+       if (toolTip)
+       {   f.userName = toolTip;
+       }
+    }
+    function get(target)
+    {  this.getURL(target, false);
+    } 
+ 
+    function But(page, x, upperY, length, depth, action, toolTip, cap)
+    {  var myRec = [ 400, 50, 100, 12];
+	    if (x)
+	    {  myRec[0] = x;
+	    }
+	    if (upperY)
+	    { myRec[1] = upperY;
+	    }
+   
+       if (length)
+       {  myRec[2] = myRec[0] + length;
+       }
+       if (depth)
+       {  myRec[3] = myRec[1] - depth;
+       }
+       var fName = 'p' + page + 'x' + x + 'y' + upperY; 
+       var f = this.addField(fName,"button", page , myRec);
+       if (action)
+       {   f.setAction("MouseUp", action);
+       }
+       if (toolTip)
+       {   f.userName = toolTip;
+       }
+       f.buttonSetCaption(cap);
+       f.display     = display.noPrint;
+       f.borderStyle = border.i;
+       f.fillColor   = ["RGB", 0.6, 0.6, 0.95];
+    }
+
+=for end
+
+The standard popup menu is defined in "popUp.js".
+
+=for popUp.js begin
+
+    function popUp()
+    {   var b = 'http://127.0.0.1:80/';
+        var a = ['cgi-bin/OffertNy.pl', 'EUSA.pdf', 'sign_HER.pdf', 
+                 'lastYear.pdf', 'best2.pdf', 'bild.pdf', 
+                 'Btrees.pdf', 'Calculator.pdf', 'Check.pdf', 
+                 'Eastern.pdf', 'fel.pdf'];
+        var n = ['Overview', 'Map', 'Base Values', 
+                 'Last year', 'Something', 'Picture', 
+                 'Ordered', 'Calculator', 'Check values',
+                 'Other map', 'Totally'];
+        var c = app.popUpMenu(['General', n[0], n[1], n[2]], 
+                ['Historical', n[3], n[4], '-', n[9], n[10]], 
+                ['Impacts', n[5], n[6], n[7], '-', n[8]] );
+        var i;
+        for (i = 0; i < n.length; i++)
+        {   if (c == n[i])
+            {   var target = b + a[i];
+                get(target);
+                break;
+            }
+        }
+    }
+
+=for end 
+
+A few explanations: "b" is the base URL. "a" is an array of actions/documents.
+"n" is an array of names of the actions/documents. "a" and "n" should have same
+number of elements. "c" is the choice. If you have made a choice, the program
+finds out what action corresponds to it.
+
+We create a new document from LetterB.pdf and put a button for the popup menu
+in the lower right corner.
+
+=for popUp1.pl begin
+
+     use PDF::Reuse;
+     use strict;
+
+     prFile('doc/popup1.pdf');
+     
+     prJs('Button.js');            # First JavaScript is included
+
+     prJs('popUp.js');             # Second JavaScript is included
+
+     my $jsCode = 'But(0, 450, 200, 100, 30,"popUp();",
+                   "Links to related documents", "Other documents >");';
+
+     prInit($jsCode);              # At initiation a button is defined via 
+                                   # But(), and it's action will be popUp()
+
+     prDoc('LetterB.pdf');
+     prEnd();
+
+=for end
+
+=head2 Merging paper, bookmarks and the web   
+
+Bookmarks can help you to navigate better within a document, this is what they are
+mainly used for, but they are not limited to that. They can also e.g. give more
+information about your data and connect to links outside your document.  
+
+In this example we imagine that a company sends out printed annual statements to
+their customers. Now the company will also make the statements available via the
+web and via mail. The paper will look exactly the same, regardless of how
+you get it, but if it arrives electronically, the customer will have the chance 
+of getting more information from it.
+
+While the program assembles the PDF-document it also creates bookmarks
+with references and links.
+
+=for bookmarks.pl begin
+
+      use PDF::Reuse;
+      use strict;
+
+      my ($assetsThisYear, $assetsLastYear, %shares, %transactions);
+
+      prFile('report.pdf');
+
+      ##################################################################
+      # Define two small JavaScripts functions. The first one fetches  
+      # a document over the net. The second one shows an alert box 
+      # with information
+      ##################################################################
+
+      my $str = 'function get(url) { this.getURL(url, false);}'
+              . ' function inf(string) { app.alert(string, 3);}';
+      prJs($str);
+
+      # Reading a database	to get shares, links to companies and
+      # transactions during the year
+      # (In a real case it would be easier to create @sharesArray and @transArray
+      # without any intermediate steps)
+      #
+      # If you want to test-run, remove the '#'-signs below and replace 
+      # template.pdf with a file that can be used as a form
+      #      
+      # $assetsThisYear   = 300000;
+      # $assetsLastYear   = 250000;
+      # %shares   = ( 'ABB B'     => 'http://www.abb.com',
+      #               'Ixzcon B'  => 'http://www.ixzcon.com',
+      #               'Nokia B'   => 'http://www.nokia.com');
+      #                     
+      # %transactions  = ('2003-05-05-SE12345' => 'Sold 200 Alfa Laval B at 150 SEK',
+      #                   '2003-05-20-BU23456' => 'Bought 300 Ixzcon B at 99 SEK',
+      #                   '2003-05-21-SE34567' => 'Sold 45 Int.Minining at 4000 SEK',
+      #                   '2003-06-10-BU7896'  => 'Bought 18000 ABB at 14 SEK',
+      #                   '2003-07-15-BU4567'  => 'Bought 2000 Nokia at 200 SEK');
+      # 
+      # prForm('template.pdf');          
+
+      if (scalar %shares)
+      {   my @sharesArray;
+          for (keys %shares)
+          {   ###############################################################
+              # Create an array of bookmark hashes. One hash for each share.
+              # The text will be in blue and italic. You can fetch more 
+              # information over the net
+              ###############################################################
+              push @sharesArray, { text  => "External: $_",
+                                   style => 1,
+                                   color => '0.2 0.2 0.7',
+                                   act   => "get('$shares{$_}');" };
+          }
+
+          ###################################################################
+          # Create a bookmark with the text 'Assets', connect it to a point
+          # in the document, and put the bookmarks for shares under it
+          ###################################################################
+          prBookmark( { text => 'Assets',
+                        act  => '0, 350, 380',
+                        kids => \@sharesArray } );
+      }
+
+      #################################################################
+      # Create an array of (closed) bookmarks for each transaction
+      # They are here only for information. (The customer should have
+      # received more detailed information earlier.)
+      #################################################################
+
+      if (scalar %transactions)
+      {   my @array;
+          for (sort (keys %transactions))
+          {   push @array, { text => $_,
+                             color => '0.5 0.1 0.1',
+                             close => 1,
+                             act  => "inf('$transactions{$_}');" };
+          }
+          prBookmark( { text => "Transactions (Unlinked)",
+                        kids => \@array } );
+      }
+
+      # ...
+
+      prText(350, 400, $assetsLastYear);
+      prText(350, 380, $assetsThisYear);
+
+      prEnd();
+
+=for end
+
+=head2 Embedded Links
+
+You want to embed links in your document.
+
+Include "Button.js" from a previous example, and run the function "Sensitive" for
+every area where you want a link.
+
+=for embedded.pl begin
+
+     use PDF::Reuse;
+     use strict;
+    
+     my ($pageNo, $x, $y, $length, $depth, $link, $text, $jsCode);
+     prFile('doc/Embedded.pdf');
+   
+     prJs('Button.js');
+     
+     # ...
+
+     $pageNo = 0;           # First page for Acrobat JavaScript
+     $x      = 40;          # upper LEFT corner
+     $y      = 530;         # UPPER left corner
+     $length = 100;         # length of the sensitive area
+     $depth  = 100;         # depth of the sensitive area
+     $link   = 'http://127.0.0.1:80/theDocument.pdf';
+     $text   = 'Show this as a tool tip text';
+
+     $jsCode = "Sensitive($pageNo,$x, $y, $length, $depth,
+               \"get('$link')\", \"$text\");"; 
+
+     prInit($jsCode);
+     
+     # ...
+     
+     prEnd();
+
+=for end
+
+=head2 Filling in a form without spending a fortune
+
+If you want to fill in a form over the net, the simplest way is just to use HTML.
+That is cheap and straightforward. If you want to use a PDF-form, you will 
+get new expenses. All your users will need something better and more expensive
+than the Reader, or they will need a plug in, or you will have to invest in
+server programs which can extend the rights of the PDF-documents.
+Anyway, in all these cases there is a price tag, and it can be substantial.
+
+Another simple alternative could be to send data from a PDF-document back to the
+server with the help of JavaScript and a getURL-sentence. (Data is not yet encrypted,
+and the user can't save the form, and there are also other shortcomings, so still
+there might be reasons for heavy investments.)
+
+Here is an example of a newsletter which can be sent by mail. At the end of the
+document there are some fields with name and address and a button to unsubscribe.
+
+You have produced a newsletter from a web page e.g. with HTMLDOC or Web Capture
+from Acrobat. Let's call it "newsTemplate.pdf". It is 4 pages. We create a little
+program which takes this document and adds a page with a simple fill-in form. First
+we need a JavaScript which defines the fields, and then we need another one which 
+collects data from the fields, creates and URL-encodes the query string and at last 
+sends the request.
+The file with JavaScript functions could look a little like this 
+("fillIn.js")
+
+=for fillIn.js begin
+   
+   function fieldsAndButtons(page, x, y)   
+   {  var l;     
+      var d;
+      var labelText = [ "Mr_Ms", "First_Name", "Surname",
+                        "Address", "City", "Zip_Code", "Country",
+                        "Phone", "Mobile_Phone", "E-mail",
+                        "Company", "Interest_1", "Interest_2",
+                        "Interest_3" ];   
+   
+      for ( var i = 0; i < labelText.length; i++)
+      {   l = x + 80;               // length of the label
+          d = y - 15;               // depth / hight 
+
+          // a label field is created
+
+          var fieldName = labelText[i] + "Label";
+          var lf1       = this.addField(fieldName, "text", page, [x,y,l,d]);
+          lf1.fillColor = color.white;
+          lf1.textColor = color.black;
+          lf1.readonly  = true;
+          lf1.textSize  = 12;
+          lf1.defaultValue = labelText[i];
+          lf1.value     = labelText[i];
+          lf1.display   = display.visible;
+
+          // a text field for the customer to fill-in his/her data is created   
+ 
+          x = l + 2;               // move 2 pixels to the right 
+          l = x + 140;             // length of the fill-in field
+
+          var tf1         = this.addField(labelText[i], "text", page, [x,y,l,d]);
+          tf1.fillColor   = ["RGB", 1, 1, 0.94];
+          tf1.strokeColor = ["RGB", 0.7, 0.7, 0.6];
+          tf1.textColor   = color.black;
+          tf1.borderStyle = border.s;
+          tf1.textSize    = 12;
+          tf1.display     = display.visible;
+      
+          x = x - 82    // move 82 pixels to the left
+          y = y - 17;   // move 17 pixels down
+      }
+      y = y + 34;
+      x = x + 250;
+      l = x + 75;
+      d = y - 30;
+      var f = this.addField("ButUpdate","button", page , [x,y,l,d]);
+      f.setAction("MouseUp", "sendUpdates()");
+      f.userName = "Press here to send updated data from this form";
+      f.buttonSetCaption("Update");
+      f.borderStyle = border.b;
+      f.fillColor   = ["RGB", 0.6, 0.6, 0.95];
+      y = y - 60;
+      d = y - 30;
+      var f = this.addField("ButUnsubscribe","button", page , [x,y,l,d]);
+      f.setAction("MouseUp", "unSubscribe()");
+      f.userName = "Press here to unsubscribe to the newsletter";
+      f.buttonSetCaption("Unsubscribe");
+      f.borderStyle = border.b;
+      f.fillColor   = ["RGB", 0.95, 0.9, 0.9];             
+   }
+
+   function unSubscribe()
+   {  var dest = 'http://127.0.0.1:80/cgi-bin/unsubscr.pl?cust=' + getCust() + '&nl'; 
+      this.getURL(dest, false);
+   }
+   function sendUpdates()
+   {  var str = '';
+      for (var i = 0; i < this.numFields; i++)
+      {   var theName = this.getNthFieldName(i);
+          var f = this.getField(theName);
+          if ((f.type == 'text') && (f.defaultValue != f.value)) 
+          {   str = str + theName + '=' + hexEncode(f.value) + '&';
+          }
+      }
+      var dest = 'http://127.0.0.1:80/cgi-bin/update.pl?cust=' + getCust() + '&' + str; 
+      this.getURL(dest, false);
+   }
+   function hexEncode(str)
+   {   var out = '';
+       for (var i = 0; i < str.length; i++)
+       {  var num = str.charCodeAt(i);
+          if ((num < 48) || (num > 122) || ((num > 57) && (num < 65))
+          || ((num > 90) && (num < 97))) 
+             out = out + '%' + util.printf("%x", num);
+          else
+             out = out + str[i];
+       }
+       return out;  
+   }
+
+=for end
+
+The Perl program that produces the newsletter could look like this
+
+=for newsLetter.pl begin
+
+     use PDF::Reuse;
+     use Mail::Sender;
+     use strict;
+    
+     my $now = localtime;
+
+     my $sender = new Mail::Sender {smtp => 'smtp.company.com', 
+                                    from => 'us@myJob.com'};
+
+     my @customers = (1, 2, 3, 4, 5);     # And lots of others
+     my %addresses = (1 => 'a@com', 
+                      2 => 'b@com',
+                      3 => 'c@com',
+                      4 => 'd@com',
+                      5 => 'e@com');      # and lots of others
+ 
+     for my $cust (@customers)
+     {   if (! exists $addresses{$cust})
+         {  next;
+         }
+         prFile("news$cust.pdf");
+         prCompress(1);
+         prJs('fillIn.js');
+         prJs("function getCust() { return '$cust'; }");     
+         my $jsCode = "fieldsAndButtons(4, 100, 800);";
+         prInit($jsCode);
+         prDoc('newsTemplate.pdf');
+         prPage();
+         prText(10, 100, ' ');        
+         prEnd();
+         
+         $sender->MailFile(  {to      => $addresses{$cust},
+                              subject => "News, $now",
+                              msg     => 'Your newsletter',
+                              file    => "news$cust.pdf"} );        
+     }
+
+=for end
+
+If you use PDF::Reuse::Scramble, you can "encrypt" the messages sent back to
+the server, so you can be sure about who sent them.
+
+=head2 Simple charts
+
+Here is a table with ordered data about prices of Nissan Maxima taken from
+a magazine in December 2003. First is model+year, then a column per 20000 km 
+with the resulting medium price in Swedish crowns. The table is put in a file, 
+'maxima.txt'.
+
+=for maxima.txt begin
+
+    Maxima-02 220 210 205 undef undef undef undef
+    Maxima-01 200 195 190 185 undef undef undef
+    Maxima-00 undef 180 175 169 162 undef undef
+    Maxima-99 undef 110 100 95 90 85 80
+    Maxima-98 undef undef 90 85 80 75 70
+    Maxima-97 undef undef 85 80 75 70 65
+    Maxima-96 undef undef undef 70 65 60 55
+
+=for end
+
+To transform the table to a simple graf, the next program can be used. If the line
+used for columns had concisted of alphabetic characters and whole words only,
+without spaces, it could also have been a line in the txt-file.
+
+=for simpleChart.pl begin
+
+   use PDF::Reuse::SimpleChart;
+   use PDF::Reuse;
+   use strict;
+     
+   prFile('myFile.pdf');
+   prCompress(1);
+   my $s = PDF::Reuse::SimpleChart->new();
+
+   $s->columns('1000 km Usage',  '20', '40', '60', '80', '100', '120', '140');
+   
+   open (INFILE, 'maxima.txt') || die "Couldn't open maxima.txt, $!\n";
+   while (<INFILE>)
+   {  my @list = m'(\S+)'og;
+      $s->add(@list) if (scalar @list) ;
+   }
+   close INFILE; 
+  
+   $s->draw(x     => 20,
+            y     => 460,
+            width => 400,
+            height => 300,
+            yUnit => '1000 SEK',
+            type  => 'bars');
+   prEnd()
+
+=for end
+
+Look at the pod of PDF::Reuse::SimpleChart for a few more examples. The programs
+of that module can also be extracted the same snippet of code as you find in the 
+beginning of this pod.
+
+=head2 Barcodes
+
+PDF::Reuse can print barcodes, but most often you want more than that. You want
+e.g. the numbers in a form humans can read, you want a white box around, 
+perhaps you want to rotate the pattern, change the size etc. Then you can use
+PDF::Reuse::Barcode, which is a separate module you can download. Look at its
+documentation for a complete list of functions (= type of barcodes), and parameters.
+
+=for barcodes.pl begin 
+
+   use PDF::Reuse;
+   use PDF::Reuse::Barcode;
+   use strict;
+
+   prFile('doc/ex23.pdf');
+
+   #################################################################
+   # First a rectangle is drawn in the upper part of the page
+   # just to show the normal white box around the barcodes
+   #################################################################
+
+   my $str = "q\n";                    # save the graphic state
+   $str   .= "0.9 0.5 0.5 rg\n";       # a fill color
+   $str   .= "10 400 440 410 re\n";    # a rectangle
+   $str   .= "b\n";                    # fill (and a little more)
+   $str   .= "Q\n";                    # restore the graphic state
+
+   prAdd($str);
+
+   #################################################
+   # Normal usage, but the size has been increased
+   #################################################
+ 
+   PDF::Reuse::Barcode::EAN13(x          => 70,
+                              y          => 700,
+                              value      => '1234567890123',
+                              size       => 1.5);
+
+
+   #########################################################
+   # A barcode "image" rotated 90 degrees counter clockwise
+   #########################################################
+
+   PDF::Reuse::Barcode::NW7(x          => 100,
+                            y          => 430,
+                            value      => '1234567890123',
+                            rotate     => 90);
+
+   ##################
+   #  Prolonged bars
+   ##################
+
+   PDF::Reuse::Barcode::IATA2of5(x          => 70,
+                                 y          => 200,
+                                 value      => '1234567890123',
+                                 prolong    => 4);
+
+   prEnd();
+
+=for end
+
+=head1 Special cases
 
 =head2 Restoring a document from the log
 
@@ -643,7 +1553,7 @@ To run this program, you have to give the name of the log from previous example
 as an argument. 
 The new files are put in new directories to avoid confusion.
 
-   # ex8_pl
+=for logRestore.pl begin
 
    use PDF::Reuse;
    use Digest::MD5;
@@ -674,6 +1584,7 @@ The new files are put in new directories to avoid confusion.
    close INFILE;
    prEnd();
 
+=for end
 
 If you are not interested in the check number, you can remove these lines:
 
@@ -701,14 +1612,15 @@ again.
 As the previous example showed, you can have batch routines to create PDF-files.
 You let your Cobol program, or what ever it is, create an ASCII file with 
 instructions similar to those of the log file (skip all unusual directives
-like Cid, Vers, Id and Idtyp) and let some perl program similar to ex8_pl
+like Cid, Vers, Id and Idtyp) and let some Perl program similar to ex8_pl
 interpret the instructions.  
 
 Also if you have an application in some other language than Perl, and that application
 can write ASCII characters to STDOUT, and your operating system supports pipes,
-I think you could let the receiving program, the end of the pipe look like this:
+I think you could let the receiving program, the end of the pipe look like this
+('pipeEnd.pl'):
 
-   # ex9_pl
+=for pipeEnd.pl begin
    
    use PDF::Reuse;
    use strict vars;
@@ -727,9 +1639,12 @@ I think you could let the receiving program, the end of the pipe look like this:
        chomp($line = <STDIN>) 
    }
 
-And here is a Perl program that writes to STDOUT, but it could be any language
+=for end
 
-   # ex10_pl
+And here is a Perl program that writes to STDOUT, but it could be any language.
+'pipeBegin.pl':
+
+=for pipeBegin.pl begin
 
    use strict;
 
@@ -759,10 +1674,11 @@ And here is a Perl program that writes to STDOUT, but it could be any language
    }
    print "prEnd\n";
 
+=for end
 
 When I put them in a pipe like this:
 
-   C:\temp>perl ex10_pl | perl ex9_pl
+   C:\temp>perl pipeBegin.pl | perl pipeEnd.pl
 
 I get a PDF-file with the name 'piped.pdf' in the directory doc.
 
@@ -776,9 +1692,10 @@ An advantage with pipes or daemons is that you can get very good response times.
 =head2 "Mixing" output from Progress with Perl code
 
 Here is an end of a pipe that evaluates every sentence it receives, if it doesn't
-begin with the word 'file', in that case it evaluates the complete file:
+begin with the word 'file', in that case it evaluates the complete file
+('pipeEnd2.pl'):
 
-   # pipeEnd.pl
+=for pipeEnd2.pl begin
    
    use strict vars;
    my $logFile = shift;
@@ -815,11 +1732,14 @@ begin with the word 'file', in that case it evaluates the complete file:
    } 
    if ($logFile)
    {   close LOG;
-   } 
- 
+   }
+
+=for end
 
 If you run it from a Progress program you can "mix" Progress and Perl statements
-like this:
+like this ('pipe.p'):
+
+=for pipe.p begin
 
     /************************************************************************/
     /* This is a Progress program that runs together with the Sports2000    */
@@ -828,7 +1748,7 @@ like this:
 
     DEF VAR str         AS CHAR                   NO-UNDO.
     DEF VAR theFirst    AS LOGI  INIT "true"      NO-UNDO.
-    OUTPUT THROUGH perl.exe C:\temp\pdf\examples\pipeEnd.pl.
+    OUTPUT THROUGH perl.exe C:\temp\pdf\examples\pipeEnd2.pl.
     
     PUT UNFORMATTED "use PDF::Reuse;" SKIP.
     PUT UNFORMATTED "prFile('C:/temp/pdf/examples/Sports2000.pdf');" SKIP.
@@ -851,7 +1771,7 @@ like this:
     END.
     PUT UNFORMATTED "prEnd();"
 
-
+=for end 
 
 =head2 Using PDF::Reuse from JScript/VBScript
 
@@ -965,6 +1885,8 @@ want to run programs like ex23_pl, you have to write specialized COM-objects.)
 
 This is an example in VBScript:
 
+=for Test.vbs begin
+
     ' Test.vbs
     ' Use PDF::Reuse from VBScript
     '
@@ -976,8 +1898,12 @@ This is an example in VBScript:
         ans = pgm.act("prText~107~685~Mr Vladimir Bosak")
         ans = pgm.act("prEnd")
 
+=for end
+
 Run it from the command line with >cscript Test.vbs or double-click on it from 
 the explorer. Here is the same example in JScript
+
+=for Test.js begin
 
     // Test.js
     // Use PDF::Reuse from JScript
@@ -989,8 +1915,12 @@ the explorer. Here is the same example in JScript
         ans = pgm.act("prText~107~685~Mr Java Script")
         ans = pgm.act("prEnd")
 
+=for end
+
 Here is an example of how to use it from the Internet Explorer. Probably
-it is not a very practical example.
+it is not a very practical example ('Test.html):
+
+=for Test.html begin
 
     <HEAD><TITLE>A Simple First Page</TITLE>
     <SCRIPT LANGUAGE="JScript">
@@ -1016,287 +1946,14 @@ it is not a very practical example.
     </BODY>
     </HTML>
 
+=for end
+
 Change the directories (and CLASSID) so it can be run on your machine
 If something goes wrong and it is within the control of PDF::Reuse, you 
 get an error log on the desktop.
 
 The first time you run via an ActiveX object, it is fairly slow, but if you
 do it repeatedly, the performance is quit acceptable.
-
-=head2 Importing an image
-
-The best way to import an image, is to take it from  another PDF-file:
-
-  # ex12_pl
-
-   use PDF::Reuse;
-   use strict;
-
-   prFile('doc/ex12.pdf');
-   
-   prImage(  { file    => 'doc/letterB.pdf',
-               page    => 1,
-               imageNo => 1,
-               x       => 75,
-               y       => 645,
-               size    => 0.6 }  );
-    
-   prEnd();
-
-Use reuseComponent_pl to see which images you can take from a PDF-file.
-
-(If you would have used 'lastYear.pdf' instead of 'letterB.pdf' in ex12_pl you
-would have had the image reversed when you extract it. PDFMaker defines it like
-that, I don't know why. Perhaps life is not supposed to be too easy. It would have
-been necessary to reverse the image with the transformation matrix.)  
-
-=head2 Adding a document
-
-You can add a document with many pages to the current document with the function
-prDoc() like this:
-
-    # ex13_pl
-
-    use PDF::Reuse;
-    use strict;
-
-    prFile('doc/ex13.pdf');
-    prForm('ex1.pdf');
-    prText(100, 500, 'This is put on the first page');
-    prPage();
-    prDoc('doc/piped.pdf');
-    prPage();
-    prForm('ex1.pdf');
-    prText(100, 500, 'This is put on the last page');
-
-    prEnd();
-
-The document from previous example is used for the first and last pages. In between
-a document, with all of its pages, is put. Graphic, and for the first prDoc or prDocForm also interactive, 
-functions are included. As usual you loose outlines, info and metadata which I haven't
-implemented.
-
-prDoc() is a little bit like a spare routine. You can include "complete" documents
-with it and it is not sensitive to the structure of the pages. Each page can
-consist of many streams. But you cannot influence the layout of the included pages
-in any other way than through JavaScript, and you cannot write anything to the pages.
-Also the routine is a little bit slow, but it has a positive
-side-effect: If you use it with old PDF-files which have been updated many
-times, it only takes the current parts of the files, so the result can be trimmed down. 
-
-=head2 A business card
-
-A PDF-page can often be used as a unit. You can resize it and display it many times
-on a new page. For this example I designed a little page with Mayura Draw. (When this text was 
-written, you could download the program from http://www.mayura.com and evaluate it for 30 days.) It produces
-files in a variant of postscript which can be transformed to PDF by the distiller.
-If you want, you can also get PDF-files directly from Mayura Draw, but the files might
-become a little big, because it doesn't compress images. 
-
-In the code below you produce 10 cards per page of paper. You print the cards on a 
-special paper where each card should be 89 * 51 mm. (I suppose that is close to
-253.2584 * 145.126 pixels) The cards start 43 pixels from the left and 59.76 from
-the bottom.
-
-Make a PDF-file with your name, photo and so on and replace 'myFile.pdf' with the 
-name of your file. You get the best results if the proportions of your file is
-something like 89/51 (width/height), but that is not so important. If you haven't
-got a photo, you can remove the if..else sentence. Then you can let the x and y-axes
-be scaled independently.
-
-    # ex14_pl
-
-    use PDF::Reuse;
-    use strict;
-
-    my $y    = 59.76;                  # Margin at the bottom
-    my $col1 = 43;                     # First column    
-    my $col2 = 296;                    # Second column
-    my $step = 145.126;                # Height of the card
-    
-    prDocDir("doc");
-    prFile('BizCard.pdf');
-
-    my @vec = prForm ( {file   => 'myFile.pdf', # Add the form definitions
-                        effect => 'add' }       # and get data about the form
-                     );
-    ###########################################################################
-    # The list from prForm contains $internalName, $lowerLeftX, $lowerLeftY,
-    # $upperRightX, $upperRightY, $numberOfImages
-    ###########################################################################
-
-    my $form = $vec[0];                       
-    my $xScale = 253.2584 / ($vec[3] - $vec[1]);
-    my $yScale = 145.126 / ($vec[4] - $vec[2]);
-    if ($xScale < $yScale)
-    {  $yScale = $xScale;
-    }
-    else
-    {  $xScale = $yScale;
-    }
-    while ($y < 720)
-    {   prForm ( {file   => 'myFile.pdf',
-                  x      => $col1,
-                  y      => $y,
-                  xsize  => $xScale,
-                  ysize  => $yScale });
-
-        prForm ( {file   => 'myFile.pdf',
-                  x      => $col2,
-                  y      => $y,
-                  xsize  => $xScale,
-                  ysize  => $yScale });
-        
-        $y += $step;
-    }
-       
-    prEnd();
-
-
-=head2 Defining interactive fields programmatically
-
-The "normal" way to define interactive fields, is to use Acrobat as a screen
-painter. You draw your fields, write your JavaScript, or cut and paste, and so
-on. It is convenient for single files, but if you are going to produce thousands
-of files, which are not going to look exactly the same, it is not very practical.
-I guarantee you get tired very quickly.
-
-Then it is better to do the job programmatically. Here is an example:
-
-You need an Acrobat JavaScript which defines some fields. It can look like
-this:
-
-   // script1.js
-
-   function nameAddress(page, xpos, ypos)
-   {  var thePage = 0;
-      if (page)
-      {   thePage = page;
-      }
-      var myRec = [ 40, 650, 0, 0];              // default position
-      if (xpos)
-      {   myRec[0] = xpos;
-      }
-      if (ypos)
-      {   myRec[1] = ypos;
-      }
-	
-      var labelText = [ "Mr/Ms", "First_Name", "Surname",
-                        "Adress", "City", "Zip_Code", "Country",
-                        "Phone", "Mobile_Phone", "E-mail",
-                        "Company", "Profession", "Interest_1", "Interest_2",
-                        "Hobby" ];   
-   
-      for ( var i = 0; i < labelText.length; i++)
-      {   myRec[2] = myRec[0] + 80;               // length of the label
-          myRec[3] = myRec[1] - 15;               // height ( or depth if you like)
-
-          // a label field is created
-
-          var fieldName = labelText[i] + "Label";
-          var lf1       = this.addField(fieldName, "text", thePage, myRec);
-          lf1.fillColor = color.white;
-          lf1.textColor = color.black;
-          lf1.readonly  = true;
-          lf1.textSize  = 12;
-          lf1.value     = labelText[i];
-          lf1.display   = display.visible;
-
-          // a text field for the customer to fill-in his/her name is created   
- 
-          myRec[0] = myRec[2] + 2;               // move 2 pixels to the right 
-          myRec[2] = myRec[0] + 140;             // length of the fill-in field
-
-          var tf1         = this.addField(labelText[i], "text", thePage, myRec);
-          tf1.fillColor   = ["RGB", 1, 1, 0.94];
-          tf1.strokeColor = ["RGB", 0.7, 0.7, 0.6];
-          tf1.textColor   = color.black;
-          tf1.borderStyle = border.s;
-          tf1.textSize    = 12;
-          tf1.display     = display.visible;
-      
-          myRec[0] = myRec[0] - 82    // move 82 pixels to the left
-          myRec[1] = myRec[1] - 17;   // move 17 pixels down
-      } 
-         
-   }
-
-A little program that uses the script could look like this:
-
-   # ex15_pl
-
-   use PDF::Reuse;
-
-   prDocDir('doc');
-   prFile('Ex15.pdf');
-   prCompress(1);                   # To compress new JavaScripts
-   prJs('script1.js');              # To include the JavaScript
-   prInit('nameAddress();');        # To call nameAddress(); at start up
-   prEnd();
-
-Within the parenthesis of prInit(), you can put JavaScript code to be executed when
-the PDF-file is opened. But there is an important limitation you should be aware of.
-When the file is opened the JavaScript interpreter I<is working>, but it is B<only 
-partially aware of old JavaScripts or interactive fields already defined.> That's
-why all functions you refer to within prInit(), should have been included with prJs()
-first. The JavaScript interpreter has simply not read the document, when the
-initiation is done. 
-
-=head2 Initiate interactive fields
-
-In PDF::Reuse there is one function that assigns values to interactive fields. It is
-prField($fieldName, $fieldValue). It works also for old interactive fields in the file.
-(I don't know why.) When you use this function, you have to spell the fieldname exactly as it is done in
-PDF-file. The spelling is case-sensitive.(And please, avoid initial spaces in names, 
-when you define new fields.)
-
-
-We add values to a few fields in the previous file:
-
-   # ex16_pl
-
-   use PDF::Reuse;
-
-   prDocDir('doc');
-   prFile('Ex16.pdf');
-   prJs('script1.js');              # To include the JavaScript
-   prInit('nameAddress();');
-   prField('First_Name', 'Lars');
-   prField('Surname', 'Lundberg');
-   prField('City', 'Stockholm');
-   prField('Country', 'Sweden');       
-   prEnd();
-
-=head2 A variant of previous example
-
-You could had written the previous example like this also (if you saved the 
-file Ex16.pdf after the fields had been created):
-
-   # ex17_pl
-
-   use PDF::Reuse;
-   prDocDir('doc');
-   prFile('Ex17.pdf');
-   prField('First_Name', 'Lars');
-   prField('Surname', 'Lundberg');
-   prField('City', 'Stockholm');
-   prField('Country', 'Sweden');
-   prDocForm('doc/Ex16.pdf');
-   prEnd(); 
-
-The prDocForm(), works like prForm() but also takes interactive fields and
-JavaScripts with it. If you would have used prForm() here, you would only have received
-an empty page. That might be a little confusing, but the graphic elements and the
-interactive ones, follow two different logical lines. It can be difficult to see what
-is graphic and what is interactive, if you haven't got Acrobat. 
-
-You should put all your PrField, prJs and prInit before the first prDocForm or prDoc,
-because all JavaScripts and interactive fields are merged when the program starts
-to analyze the first interactive page it is going to include. If you have many calls
-to prDoc or prDocForm in your program, only the first one will bring JavaScripts and
-interactive functions with it, the rest of the times only graphic elements within
-the pages are taken. Perhaps I should try to solve these problems in a future
-version of PDF::Reuse.  
 
 =head2 Checking version of the browser 
 
@@ -1308,9 +1965,9 @@ version of Acrobat Reader or Acrobat, he will be asked to download the latest Ac
 Reader. If he has a workable version of the browser, the two fields will be hidden.
 You should have received 'downLink.pdf' in the distribution.
 I also hope that you received 'customerResponse.js'. With those files we can continue
-with the next program
+with the next program ('versionCheck.pl'):
 
-    # ex18_pl
+=for versionCheck.pl begin
 
     use PDF::Reuse;
 
@@ -1330,6 +1987,8 @@ with the next program
     prText(75, 770, 'Please, give us correct information about you !');
     prEnd();
 
+=for end
+
 Here the user fills in some data about himself, and if he has Acrobat, he can sign
 it electronically and send it back by mail. The form data will be transferred
 as an FDF-file, which is fairly compact.
@@ -1342,551 +2001,6 @@ and the program would be much more useful.)
 
 When the program is run, a log is produced. It will be approx. 2% of the formatted 
 file. 
-
-=head2 A popup menu with common links
-
-You have some PDF-files on your web site, and now you want to add a standard popup 
-menu with links to your documents.
-
-To accomplish this, we create 2 JavaScrips.
-
-The first JavaScript, "Button.js", consists of 3 functions. "Sensitive" defines an
-area. If you move your mouse into it, you get a tool tip text, and if you click within
-it you trigger an action. "get" fetches something over the net. "But" creates a
-visible button.
-
-    function Sensitive(page, x, upperY, length, depth, action, toolTip)
-    {  var myRec = [ 400, 50, 100, 12];
-	    if (x)
-	    {  myRec[0] = x;
-	    }
-	    if (upperY)
-	    { myRec[1] = upperY;
-	    }
-   
-       if (length)
-       {  myRec[2] = myRec[0] + length;
-       }
-       if (depth)
-       {  myRec[3] = myRec[1] - depth;
-       }
-
-       var fName = 'p' + page + 'x' + x + 'y' + upperY; 
-       var f = this.addField(fName,"button", page , myRec);
-       if (action)
-       {   f.setAction("MouseUp", action);
-       }
-       if (toolTip)
-       {   f.userName = toolTip;
-       }
-    }
-    function get(target)
-    {  this.getURL(target, false);
-    } 
- 
-    function But(page, x, upperY, length, depth, action, toolTip, cap)
-    {  var myRec = [ 400, 50, 100, 12];
-	    if (x)
-	    {  myRec[0] = x;
-	    }
-	    if (upperY)
-	    { myRec[1] = upperY;
-	    }
-   
-       if (length)
-       {  myRec[2] = myRec[0] + length;
-       }
-       if (depth)
-       {  myRec[3] = myRec[1] - depth;
-       }
-       var fName = 'p' + page + 'x' + x + 'y' + upperY; 
-       var f = this.addField(fName,"button", page , myRec);
-       if (action)
-       {   f.setAction("MouseUp", action);
-       }
-       if (toolTip)
-       {   f.userName = toolTip;
-       }
-       f.buttonSetCaption(cap);
-       f.display     = display.noPrint;
-       f.borderStyle = border.i;
-       f.fillColor   = ["RGB", 0.6, 0.6, 0.95];
-    }
-
-The standard popup menu is defined in "popUp.js".
-
-    function popUp()
-    {   var b = 'http://127.0.0.1:80/';
-        var a = ['cgi-bin/OffertNy.pl', 'EUSA.pdf', 'sign_HER.pdf', 
-                 'lastYear.pdf', 'best2.pdf', 'bild.pdf', 
-                 'Btrees.pdf', 'Calculator.pdf', 'Check.pdf', 
-                 'Eastern.pdf', 'fel.pdf'];
-        var n = ['Overview', 'Map', 'Base Values', 
-                 'Last year', 'Something', 'Picture', 
-                 'Ordered', 'Calculator', 'Check values',
-                 'Other map', 'Totally'];
-        var c = app.popUpMenu(['General', n[0], n[1], n[2]], 
-                ['Historical', n[3], n[4], '-', n[9], n[10]], 
-                ['Impacts', n[5], n[6], n[7], '-', n[8]] );
-        var i;
-        for (i = 0; i < n.length; i++)
-        {   if (c == n[i])
-            {   var target = b + a[i];
-                get(target);
-                break;
-            }
-        }
-    } 
-
-A few explanations: "b" is the base URL. "a" is an array of actions/documents.
-"n" is an array of names of the actions/documents. "a" and "n" should have same
-number of elements. "c" is the choice. If you have made a choice, the program
-finds out what action corresponds to it.
-
-We create a new document from LetterB.pdf and put a button for the popup menu
-in the lower right corner.
-
-     use PDF::Reuse;
-     use strict;
-
-     prFile('doc/popup1.pdf');
-     
-     prJs('Button.js');            # First JavaScript is included
-
-     prJs('popUp.js');             # Second JavaScript is included
-
-     my $jsCode = 'But(0, 450, 200, 100, 30,"popUp();",
-                   "Links to related documents", "Other documents >");';
-
-     prInit($jsCode);              # At initiation a button is defined via 
-                                   # But(), and it's action will be popUp()
-
-     prDoc('LetterB.pdf');
-     prEnd();
-
-
-=head2 Merging paper, bookmarks and the web   
-
-Bookmarks can help you to navigate better within a document, this is what they are
-mainly used for, but they are not limited to that. They can also e.g. give more
-information about your data and connect to links outside your document.  
-
-In this example we imagine that a company sends out printed annual statements to
-their customers. Now the company will also make the statements available via the
-web and via mail. The paper will look exactly the same, regardless of how
-you get it, but if it arrives electronically, the customer will have the chance 
-of getting more information from it.
-
-While the program assembles the PDF-document it also creates bookmarks
-with references and links.
-
-      use PDF::Reuse;
-      use strict;
-
-      my ($assetsThisYear, $assetsLastYear, %shares, %transactions);
-
-      prFile('report.pdf');
-
-      ##################################################################
-      # Define two small JavaScripts functions. The first one fetches  
-      # a document over the net. The second one shows an alert box 
-      # with information
-      ##################################################################
-
-      my $str = 'function get(url) { this.getURL(url, false);}'
-              . ' function inf(string) { app.alert(string, 3);}';
-      prJs($str);
-
-      # Reading a database	to get shares, links to companies and
-      # transactions during the year
-      # (In a real case it would be easier to create @sharesArray and @transArray
-      # without any intermediate steps)
-      #
-      # If you want to test-run, remove the '#'-signs below and replace 
-      # template.pdf with a file that can be used as a form
-      #      
-      # $assetsThisYear   = 300000;
-      # $assetsLastYear   = 250000;
-      # %shares   = ( 'ABB B'     => 'http://www.abb.com',
-      #               'Ixzcon B'  => 'http://www.ixzcon.com',
-      #               'Nokia B'   => 'http://www.nokia.com');
-      #                     
-      # %transactions  = ('2003-05-05-SE12345' => 'Sold 200 Alfa Laval B at 150 SEK',
-      #                   '2003-05-20-BU23456' => 'Bought 300 Ixzcon B at 99 SEK',
-      #                   '2003-05-21-SE34567' => 'Sold 45 Int.Minining at 4000 SEK',
-      #                   '2003-06-10-BU7896'  => 'Bought 18000 ABB at 14 SEK',
-      #                   '2003-07-15-BU4567'  => 'Bought 2000 Nokia at 200 SEK');
-      # 
-      # prForm('template.pdf');          
-
-      if (scalar %shares)
-      {   my @sharesArray;
-          for (keys %shares)
-          {   ###############################################################
-              # Create an array of bookmark hashes. One hash for each share.
-              # The text will be in blue and italic. You can fetch more 
-              # information over the net
-              ###############################################################
-              push @sharesArray, { text  => "External: $_",
-                                   style => 1,
-                                   color => '0.2 0.2 0.7',
-                                   act   => "get('$shares{$_}');" };
-          }
-
-          ###################################################################
-          # Create a bookmark with the text 'Assets', connect it to a point
-          # in the document, and put the bookmarks for shares under it
-          ###################################################################
-          prBookmark( { text => 'Assets',
-                        act  => '0, 350, 380',
-                        kids => \@sharesArray } );
-      }
-
-      #################################################################
-      # Create an array of (closed) bookmarks for each transaction
-      # They are here only for information. (The customer should have
-      # received more detailed information earlier.)
-      #################################################################
-
-      if (scalar %transactions)
-      {   my @array;
-          for (sort (keys %transactions))
-          {   push @array, { text => $_,
-                             color => '0.5 0.1 0.1',
-                             close => 1,
-                             act  => "inf('$transactions{$_}');" };
-          }
-          prBookmark( { text => "Transactions (Unlinked)",
-                        kids => \@array } );
-      }
-
-      # ...
-
-      prText(350, 400, $assetsLastYear);
-      prText(350, 380, $assetsThisYear);
-
-      prEnd();
-      
-
-=head2 Popup menu 2
-
-You want to build a popup menu from a structure of hashes and arrays of hashes.
-Each hash can have these components
-     
-     text   
-     kids | act   a JavaScript action
-
-
-The structure could also be used to create bookmarks, but here it is a little more
-limited. Only hashes without kids can have actions. (It is perhaps easier to
-define bookmarks, but you feel that they are too closely connected to the
-structure of the document.) 
-There should have been a routine to handle passwords in this example, but we
-disregard that, not to complicate the code too much. Also there should a
-query string at the end of most URLs. (Look at "Filling in a form without spending
-a fortune" for an example with an URL-encoded query string.)
-
-You build a menu structure which is transformed to a function by the subroutine
-"translate" 
-
-    use PDF::Reuse;
-    use strict;
-     
-    prFile('doc/popUp2.pdf');
-    prCompress(1);
-    my $tree  = [ { text => 'General',
-                    kids => [  {text => 'Overview',
-                                 act  => 'get("http://127.0.0.1/gIndex.pdf");'},
-                                {text => 'Brokers',
-                                 act  => 'get("http://127.0.0.1/brokers.pdf");'},
-                                {text => 'Competitors',
-                                 act  => 'get("http://127.0.0.1/competitors.pdf");'}
-                            ] },
-                  { text => 'Status',
-                    kids => [  {text  => 'This year',
-                                act   => 'get("http://127.0.0.1/cgi-bin/saldo.pl");'},
-                               {text  => 'Monthly',
-                                act   => 'get("http://127.0.0.1/cgi-bin/monthBal.pl");'},
-                               {text  => 'Last Year',
-                                act   => 'get("http://127.0.0.1/cgi-bin/lYear.pl")'}
-                            ] },
-                  { text => 'Transactions',
-                    kids =>  [ {text => 'Purchased',
-                                act  => 'get("http://127.0.0.1/cgi-bin/purch.pl");' },
-                               {text => 'Ordered',
-                                act  => 'get("http://127.0.0.1/cgi-bin/ordered.pl");'} 
-                             ]}
-                ];
-        
-     my $str = translate('popUp1', $tree);
-
-     prJs($str);                        # include popUp1() as a string
-
-     prJs('Button.js');                 # Include code to define buttons
-        
-     $str = 'But(0, 450, 100, 100, 30,"popUp1();",
-            "Links to your other documents", "Other documents >");';          
-          
-     prInit($str);                      # runs the snippet just above
-                                        # when the document is opened
-        
-     prDoc('LetterB.pdf');
-     prEnd();
-
-     ###########################################################
-     # From here on, in this subroutine, the menu structure is 
-     # translated to a string
-     ###########################################################
-
-     sub translate
-     {   my $funcName = shift;
-         my $param    = shift;
-         my $i = 0;
-         my ($targetString, $nameString, $menuString);
-         
-         if (ref($param) eq 'HASH')
-         {   descend($param);
-         }
-         elsif (ref($param) eq 'ARRAY')
-         {   for (@{$param})
-             {  descend ($_);
-             }
-         }
-         chop($menuString);
-         chop($nameString);
-         chop($targetString);
-         
-         my $jsCode = "function $funcName()
-         {   var a = [$targetString];
-             var n = [$nameString];
-             var c = app.popUpMenu($menuString);
-             for (var i = 0; i < n.length; i++)
-             {   if (c == n[i])
-                 {   eval(a[i]);
-                     break;
-                 }
-             }
-          }";
-          $jsCode =~ s/^\s+//gm;            # remove leading spaces 
-          return $jsCode;
-     
-     
-          sub descend
-          {   my $struct = shift;
-              if (ref($struct) eq 'ARRAY')
-              {  for (@{$struct})
-                 {   descend ($_);
-                 }
-              }
-              elsif (ref($struct) eq 'HASH')
-              {   my %hash = %$struct;
-                  if (exists $hash{'kids'})
-                  {   $menuString .= "['$hash{'text'}',";
-                      descend ($hash{'kids'});
-                      chop($menuString);
-                      $menuString .= "],";
-                  }
-                  else
-                  {   $nameString   .= "'$hash{'text'}',";
-                      $targetString .= "'$hash{'act'}',";
-                      $menuString   .= "n[$i],";
-                      $i++;
-                  }
-              } 
-          }
-     }
-
-=head2 Embedded Links
-
-You want to embed links in your document.
-
-Include "Button.js" from a previous example, and run the function "Sensitive" for
-every area where you want a link.
-
-     use PDF::Reuse;
-     use strict;
-    
-     my ($pageNo, $x, $y, $length, $depth, $link, $text, $jsCode);
-     prFile('doc/Embedded.pdf');
-   
-     prJs('Button.js');
-     
-     # ...
-
-     $pageNo = 0;           # First page for Acrobat JavaScript
-     $x      = 40;          # upper LEFT corner
-     $y      = 530;         # UPPER left corner
-     $length = 100;         # length of the sensitive area
-     $depth  = 100;         # depth of the sensitive area
-     $link   = 'http://127.0.0.1:80/theDocument.pdf';
-     $text   = 'Show this as a tool tip text';
-
-     $jsCode = "Sensitive($pageNo,$x, $y, $length, $depth,
-               \"get('$link')\", \"$text\");"; 
-
-     prInit($jsCode);
-     
-     # ...
-     
-     prEnd();
-
-=head2 Filling in a form without spending a fortune
-
-If you want to fill in a form over the net, the simplest way is just to use HTML.
-That is cheap and straightforward. If you want to use a PDF-form, you will 
-get new expenses. All your users will need something better and more expensive
-than the Reader, or they will need a plug in, or you will have to invest in
-server programs which can extend the rights of the PDF-documents.
-Anyway, in all these cases there is a price tag, and it can be substantial.
-
-Another simple alternative could be to send data from a PDF-document back to the
-server with the help of JavaScript and a getURL-sentence. (Data is not yet encrypted,
-and the user can't save the form, and there are also other shortcomings, so still
-there might be reasons for heavy investments.)
-
-Here is an example of a newsletter which can be sent by mail. At the end of the
-document there are some fields with name and address and a button to unsubscribe.
-
-You have produced a newsletter from a web page e.g. with HTMLDOC or Web Capture
-from Acrobat. Let's call it "newsTemplate.pdf". It is 4 pages. We create a little
-program which takes this document and adds a page with a simple fill-in form. First
-we need a JavaScript which defines the fields, and then we need another one which 
-collects data from the fields, creates and URL-encodes the query string and at last 
-sends the request.
-The file with JavaScript functions could look a little like this 
-("fillIn.js")
-
-   
-   function fieldsAndButtons(page, x, y)   
-   {  var l;     
-      var d;
-      var labelText = [ "Mr_Ms", "First_Name", "Surname",
-                        "Address", "City", "Zip_Code", "Country",
-                        "Phone", "Mobile_Phone", "E-mail",
-                        "Company", "Interest_1", "Interest_2",
-                        "Interest_3" ];   
-   
-      for ( var i = 0; i < labelText.length; i++)
-      {   l = x + 80;               // length of the label
-          d = y - 15;               // depth / hight 
-
-          // a label field is created
-
-          var fieldName = labelText[i] + "Label";
-          var lf1       = this.addField(fieldName, "text", page, [x,y,l,d]);
-          lf1.fillColor = color.white;
-          lf1.textColor = color.black;
-          lf1.readonly  = true;
-          lf1.textSize  = 12;
-          lf1.defaultValue = labelText[i];
-          lf1.value     = labelText[i];
-          lf1.display   = display.visible;
-
-          // a text field for the customer to fill-in his/her data is created   
- 
-          x = l + 2;               // move 2 pixels to the right 
-          l = x + 140;             // length of the fill-in field
-
-          var tf1         = this.addField(labelText[i], "text", page, [x,y,l,d]);
-          tf1.fillColor   = ["RGB", 1, 1, 0.94];
-          tf1.strokeColor = ["RGB", 0.7, 0.7, 0.6];
-          tf1.textColor   = color.black;
-          tf1.borderStyle = border.s;
-          tf1.textSize    = 12;
-          tf1.display     = display.visible;
-      
-          x = x - 82    // move 82 pixels to the left
-          y = y - 17;   // move 17 pixels down
-      }
-      y = y + 34;
-      x = x + 250;
-      l = x + 75;
-      d = y - 30;
-      var f = this.addField("ButUpdate","button", page , [x,y,l,d]);
-      f.setAction("MouseUp", "sendUpdates()");
-      f.userName = "Press here to send updated data from this form";
-      f.buttonSetCaption("Update");
-      f.borderStyle = border.b;
-      f.fillColor   = ["RGB", 0.6, 0.6, 0.95];
-      y = y - 60;
-      d = y - 30;
-      var f = this.addField("ButUnsubscribe","button", page , [x,y,l,d]);
-      f.setAction("MouseUp", "unSubscribe()");
-      f.userName = "Press here to unsubscribe to the newsletter";
-      f.buttonSetCaption("Unsubscribe");
-      f.borderStyle = border.b;
-      f.fillColor   = ["RGB", 0.95, 0.9, 0.9];             
-   }
-
-   function unSubscribe()
-   {  var dest = 'http://127.0.0.1:80/cgi-bin/unsubscr.pl?cust=' + getCust() + '&nl'; 
-      this.getURL(dest, false);
-   }
-   function sendUpdates()
-   {  var str = '';
-      for (var i = 0; i < this.numFields; i++)
-      {   var theName = this.getNthFieldName(i);
-          var f = this.getField(theName);
-          if ((f.type == 'text') && (f.defaultValue != f.value)) 
-          {   str = str + theName + '=' + hexEncode(f.value) + '&';
-          }
-      }
-      var dest = 'http://127.0.0.1:80/cgi-bin/update.pl?cust=' + getCust() + '&' + str; 
-      this.getURL(dest, false);
-   }
-   function hexEncode(str)
-   {   var out = '';
-       for (var i = 0; i < str.length; i++)
-       {  var num = str.charCodeAt(i);
-          if ((num < 48) || (num > 122) || ((num > 57) && (num < 65))
-          || ((num > 90) && (num < 97))) 
-             out = out + '%' + util.printf("%x", num);
-          else
-             out = out + str[i];
-       }
-       return out;  
-   }
-
-
-The Perl program that produces the newsletter could look like this
-
-     use PDF::Reuse;
-     use Mail::Sender;
-     use strict;
-    
-     my $now = localtime;
-
-     my $sender = new Mail::Sender {smtp => 'smtp.company.com', 
-                                    from => 'us@myJob.com'};
-
-     my @customers = (1, 2, 3, 4, 5);     # And lots of others
-     my %addresses = (1 => 'a@com', 
-                      2 => 'b@com',
-                      3 => 'c@com',
-                      4 => 'd@com',
-                      5 => 'e@com');      # and lots of others
- 
-     for my $cust (@customers)
-     {   if (! exists $addresses{$cust})
-         {  next;
-         }
-         prFile("news$cust.pdf");
-         prCompress(1);
-         prJs('fillIn.js');
-         prJs("function getCust() { return '$cust'; }");     
-         my $jsCode = "fieldsAndButtons(4, 100, 800);";
-         prInit($jsCode);
-         prDoc('newsTemplate.pdf');
-         prPage();
-         prText(10, 100, ' ');        
-         prEnd();
-         
-         $sender->MailFile(  {to      => $addresses{$cust},
-                              subject => "News, $now",
-                              msg     => 'Your newsletter',
-                              file    => "news$cust.pdf"} );        
-     }
-
 
 =head2 Generate OO-code
 
@@ -2015,86 +2129,14 @@ instead of packages. Then you can cut and paste to include the code in
 your programs. It is a little more work, but your programs will be faster 
 if it is correctly done.
 
-=head2 Simple charts
-
-In the distribution I put a very simple module, 'Histogram.pm'. It is the very 
-first program I have done that produces charts, so it can be greatly improved.
-It is there to show that is not difficult to design charts. 
-Try it, perhaps with this snippet of code (The colors are randomly chosen,so
-sometimes they are no good.)
-
-   # ex19_pl
-
-   use PDF::Reuse;
-   use Histogram;
-   use strict;
-  
-   prFile('doc/ex19.pdf');
-   my $h = Histogram->new();
-
-   $h->values(400, 600, -200, 900, 240, 700, 125, 429, 235, 874);
-
-   ###################################
-   # Name to connect to each value
-   ###################################
-
-   $h->names('Söderblom', 'Alström', 'Junger', 'Larsson', 'Fält', 
-                'Ljung', 'Andersson', 'Persson', 'Qvist', 'Andreen');
-
-   $h->draw(x    => 10,
-            y    => 300,
-            size => 0.75);
-    prEnd();
-
-Also there is another preliminary module in the distribution: to draw line 
-charts. Very little time has been spent on it.
-
-   # ex20_pl
-
-   use PDF::Reuse;
-   use Linechart;
-   use strict;
-  
-   prFile('doc/ex20.pdf');
-   my $l = Linechart->new();
-
-   #####################
-   #  Series of values
-   #####################
-
-   $l->values(400, 600, 200, 900, 240, 700, 125, 429, 235, 874);
-   $l->values(500, 400, 600, 200, 900, 240, 700, 125, 429, 235);
-   $l->values(559, 534, 600, 575, 400, 440, 650, 425, 500, 435);
-   $l->values(502, 634, 470, 575, 518, 240, 250, 325, 433, 535);
-   
-   ################################
-   # Connect a name to each series 
-   ################################
-
-   $l->names('Söderblom', 'Alström', 'Lundberg', 'Frank');
-
-   ######################################
-   # What to put along the X-axis
-   ######################################
-
-   $l->xNames('Jan', 'Feb', 'Mar', 'Apr', 'May','Jun', 'Jul', 
-               'Aug', 'Sep', 'Oct');
-
-   $l->draw(x    => 10,
-            y    => 300);
-    prEnd();
-
-It is fairly easy to do graphics with the PDF-operators, and the produced files
-are very small. Compress them if you want them even smaller.
-
 =head2 Efficient storage of text
 
 Just as an example of how to handle text, I saved "Judges" from King James Bible as 
 a text file. I found it at http://www.kingjamesversionofthebible.com/7-judges.html
 It received the name 'Judges.txt', and was 110 kB. To transform it to PDF, this
-little program can be used:
+little program can be used ('storage1.pl'):
 
-   #ex21_pl
+=for storage1.pl begin
 
    use PDF::Reuse;
    use strict;
@@ -2130,13 +2172,16 @@ little program can be used:
    close INFILE;
    prEnd;
 
+=for end
+
 When you run this program, the result, 'Judges.pdf' will be 59 kB. It is 33 pages 
 of text.
 
 The function prText can be convenient, but if you want more control and perhaps
-also more compressed files, you can work directly with the text operators of PDF:
+also more compressed files, you can work directly with the text operators of PDF
+('storage2.pl'):
 
-   # ex22_pl
+=for storage2.pl begin
 
    use PDF::Reuse;
    use strict;
@@ -2192,6 +2237,8 @@ also more compressed files, you can work directly with the text operators of PDF
        $lineNo = 0;
    }
 
+=for end
+
 Remove the line prCompress(1); if you want to see how the streams are formed. 
 Notice the lines in the subroutine pageTop.
 
@@ -2223,64 +2270,137 @@ The ' is an operator that moves to the next line and shows the text string.
 
 When you run this program the PDF-file will be 53 kB.
 
-=head2 Barcodes
+=head2 A variant of a popup menu
 
-PDF::Reuse can print barcodes, but most often you want more than that. You want
-e.g. the numbers in a form humans can read, you want a white box around, 
-perhaps you want to rotate the pattern, change the size etc. Then you can use
-PDF::Reuse::Barcode, which is a separate module you can download. Look at its
-documentation for a complete list of functions (= type of barcodes), and parameters. 
-
-   # ex23_pl
-
-   use PDF::Reuse;
-   use PDF::Reuse::Barcode;
-   use strict;
-
-   prFile('doc/ex23.pdf');
-
-   #################################################################
-   # First a rectangle is drawn in the upper part of the page
-   # just to show the normal white box around the barcodes
-   #################################################################
-
-   my $str = "q\n";                    # save the graphic state
-   $str   .= "0.9 0.5 0.5 rg\n";       # a fill color
-   $str   .= "10 400 440 410 re\n";    # a rectangle
-   $str   .= "b\n";                    # fill (and a little more)
-   $str   .= "Q\n";                    # restore the graphic state
-
-   prAdd($str);
-
-   #################################################
-   # Normal usage, but the size has been increased
-   #################################################
- 
-   PDF::Reuse::Barcode::EAN13(x          => 70,
-                              y          => 700,
-                              value      => '1234567890123',
-                              size       => 1.5);
+You want to build a popup menu from a structure of hashes and arrays of hashes.
+Each hash can have these components
+     
+     text   
+     kids | act   a JavaScript action
 
 
-   #########################################################
-   # A barcode "image" rotated 90 degrees counter clockwise
-   #########################################################
+The structure could also be used to create bookmarks, but here it is a little more
+limited. Only hashes without kids can have actions. (It is perhaps easier to
+define bookmarks, but you feel that they are too closely connected to the
+structure of the document.) 
+There should have been a routine to handle passwords in this example, but we
+disregard that, not to complicate the code too much. Also there should a
+query string at the end of most URLs. (Look at "Filling in a form without spending
+a fortune" for an example with an URL-encoded query string.)
 
-   PDF::Reuse::Barcode::NW7(x          => 100,
-                            y          => 430,
-                            value      => '1234567890123',
-                            rotate     => 90);
+You build a menu structure which is transformed to a function by the subroutine
+"translate"
 
-   ##################
-   #  Prolonged bars
-   ##################
+=for popUp2.pl begin
 
-   PDF::Reuse::Barcode::IATA2of5(x          => 70,
-                                 y          => 200,
-                                 value      => '1234567890123',
-                                 prolong    => 4);
+    use PDF::Reuse;
+    use strict;
+     
+    prFile('doc/popUp2.pdf');
+    prCompress(1);
+    my $tree  = [ { text => 'General',
+                    kids => [  {text => 'Overview',
+                                 act  => 'get("http://127.0.0.1/gIndex.pdf");'},
+                                {text => 'Brokers',
+                                 act  => 'get("http://127.0.0.1/brokers.pdf");'},
+                                {text => 'Competitors',
+                                 act  => 'get("http://127.0.0.1/competitors.pdf");'}
+                            ] },
+                  { text => 'Status',
+                    kids => [  {text  => 'This year',
+                                act   => 'get("http://127.0.0.1/cgi-bin/saldo.pl");'},
+                               {text  => 'Monthly',
+                                act   => 'get("http://127.0.0.1/cgi-bin/monthBal.pl");'},
+                               {text  => 'Last Year',
+                                act   => 'get("http://127.0.0.1/cgi-bin/lYear.pl")'}
+                            ] },
+                  { text => 'Transactions',
+                    kids =>  [ {text => 'Purchased',
+                                act  => 'get("http://127.0.0.1/cgi-bin/purch.pl");' },
+                               {text => 'Ordered',
+                                act  => 'get("http://127.0.0.1/cgi-bin/ordered.pl");'} 
+                             ]}
+                ];
+        
+     my $str = translate('popUp1', $tree);
 
-   prEnd();
+     prJs($str);                        # include popUp1() as a string
+
+     prJs('Button.js');                 # Include code to define buttons
+        
+     $str = 'But(0, 450, 100, 100, 30,"popUp1();",
+            "Links to your other documents", "Other documents >");';          
+          
+     prInit($str);                      # runs the snippet just above
+                                        # when the document is opened
+        
+     prDoc('LetterB.pdf');
+     prEnd();
+
+     ###########################################################
+     # From here on, in this subroutine, the menu structure is 
+     # translated to a string
+     ###########################################################
+
+     sub translate
+     {   my $funcName = shift;
+         my $param    = shift;
+         my $i = 0;
+         my ($targetString, $nameString, $menuString);
+         
+         if (ref($param) eq 'HASH')
+         {   descend($param);
+         }
+         elsif (ref($param) eq 'ARRAY')
+         {   for (@{$param})
+             {  descend ($_);
+             }
+         }
+         chop($menuString);
+         chop($nameString);
+         chop($targetString);
+         
+         my $jsCode = "function $funcName()
+         {   var a = [$targetString];
+             var n = [$nameString];
+             var c = app.popUpMenu($menuString);
+             for (var i = 0; i < n.length; i++)
+             {   if (c == n[i])
+                 {   eval(a[i]);
+                     break;
+                 }
+             }
+          }";
+          $jsCode =~ s/^\s+//gm;            # remove leading spaces 
+          return $jsCode;
+     
+     
+          sub descend
+          {   my $struct = shift;
+              if (ref($struct) eq 'ARRAY')
+              {  for (@{$struct})
+                 {   descend ($_);
+                 }
+              }
+              elsif (ref($struct) eq 'HASH')
+              {   my %hash = %$struct;
+                  if (exists $hash{'kids'})
+                  {   $menuString .= "['$hash{'text'}',";
+                      descend ($hash{'kids'});
+                      chop($menuString);
+                      $menuString .= "],";
+                  }
+                  else
+                  {   $nameString   .= "'$hash{'text'}',";
+                      $targetString .= "'$hash{'act'}',";
+                      $menuString   .= "n[$i],";
+                      $i++;
+                  }
+              } 
+          }
+     }
+
+=for end
 
 =head1 AUTHOR
 
