@@ -2,7 +2,7 @@ package PDF::Reuse::Tutorial;
 
 use strict;
 
-our $VERSION = '0.04';
+our $VERSION = '0.05';
 
 1;
 
@@ -50,23 +50,30 @@ stream with prAdd(), has to follow the PDF syntax completely.
 
 =head3 JavaScript:
 
-You can add JavaScript to your PDF-file programmatically. This is experimental, but I
-think it can work very well anyway, at least with Acrobat Reader 5.1 or Acrobat 5.0.
-I can't give any guarantees about future versions.
+You can add JavaScript to your PDF-file programmatically. This works with Acrobat
+Reader 5.1 or Acrobat 5.0 and higher versions.
 You should have the "Acrobat JavaScript Object Specification" by hand. If you
 haven't got Acrobat, you can probably download it from http://partners.adobe.com/asn/developer/technotes/acrobatpdf.html.
 It is technical note # 5186. 
 JavaScript for HTML and PDF differs so much that you need the manual, even if
 you know JavaScript very well.
 
-  
-
+ 
 I have developed PDF::Reuse in a Windows environment, so I don't use the line
 
     #!/usr/bin/perl -w
 
 It only produces an warning that it's too late for this switch. If you work under
 Unix you probably have to add that to all the examples
+
+If you want to run a program under a web server, you can probably replace the
+line with prFile(..) in most examples with the lines:
+
+     prInitVars();
+     $| = 1;
+     print STDOUT "Content-Type: application/pdf \r\n\r\n";
+     prFile();
+
 
 =head2 A very basic program
    
@@ -1353,8 +1360,242 @@ together with these programs, but if it could be used, the JavaScripts could be 
 and the program would be much more useful.) 
 
 When the program is run, a log is produced. It will be approx. 2% of the formatted 
-file.   
+file. 
 
+=head2 A popup menu with common links
+
+You have some PDF-files on your web site, and now you want add a standard popup menu
+with links to your documents.
+
+To accomplish this, we create 2 javascrips.
+
+The first javascript, "Button.js", consists of 3 functions. "Sensitive" defines an
+area. If you move your mouse into it, you get a tool tip text, and if you click within
+it you trigger an action. "get" fetches something over the net. "Visible" is a
+continuation of Sensitive. It makes an area into a visible button.
+
+    function Sensitive(page, x, upperY, length, depth, action, toolTip)
+    {  if (this.info.ModDate)
+       { return true;         
+       }
+   
+	    var myRec = [ 400, 50, 100, 12];
+	    if (x)
+	    {  myRec[0] = x;
+	    }
+	    if (upperY)
+	    { myRec[1] = upperY;
+	    }
+   
+       if (length)
+       {  myRec[2] = myRec[0] + length;
+       }
+       if (depth)
+       {  myRec[3] = myRec[1] - depth;
+       }
+
+       var fName = 'p' + page + 'x' + x + 'y' + upperY; 
+       var f = this.addField(fName,"button", page , myRec);
+       if (action)
+       {   f.setAction("MouseUp", action);
+       }
+       if (toolTip)
+       {   f.userName = toolTip;
+       }
+       return f;
+    }
+
+    function get(target)
+    {  this.getURL(target, false);
+    } 
+ 
+
+    function Visible(page, x, upperY, length, depth, action, toolTip, cap)
+    {   var ff = Sensitive(page, x, upperY, length, depth, action, toolTip);
+        ff.buttonSetCaption(cap);
+        ff.display     = display.noPrint;
+        ff.borderStyle = border.i;
+        // ff.fillColor = color.ltGray;
+    }
+
+The standard popup menu is defined in "popUp.js".
+
+    function popUp()
+    {   var b = 'http://127.0.0.1:80/';
+        var a = ['cgi-bin/OffertNy.pl', 'EUSA.pdf', 'sign_HER.pdf', 
+                 'lastYear.pdf', 'best2.pdf', 'bild.pdf', 
+                 'Btrees.pdf', 'Calculator.pdf', 'Check.pdf', 
+                 'Eastern.pdf', 'fel.pdf'];
+        var n = ['Overview', 'Map', 'Base Values', 
+                 'Last year', 'Something', 'Picture', 
+                 'Ordered', 'Calculator', 'Check values',
+                 'Other map', 'Totally'];
+        var c = app.popUpMenu(['General', n[0], n[1], n[2]], 
+                ['Historical', n[3], n[4], '-', n[9], n[10]], 
+                ['Impacts', n[5], n[6], n[7], '-', n[8]] );
+        var i;
+        for (i = 0; i < n.length; i++)
+        {   if (c == n[i])
+            {   var target = b + a[i];
+                get(target);
+                break;
+            }
+        }
+    } 
+
+A few explanations: "b" is the base URL. "a" is an array of actions/documents.
+"n" is an array of names of the actions/documents. "a" and "n" should have same
+number of elements. "c" is the choice. If you have made a choice, the program
+finds out what action corresponds to it.
+
+We create a new document from LetterB.pdf and put a button for the popup menu
+in the lower right corner.
+
+     use PDF::Reuse;
+     use strict;
+
+     prFile('doc/popup1.pdf');
+
+     prJs('Button.js');            # First JavaScript is included
+
+     prJs('popUp.js');             # Second JavaScript is included
+
+     my $jsCode = 'Visible(0, 450, 100, 100, 30,"popUp();",
+                   "Links to related documents", "Other documents >");';
+
+     prInit($jsCode);              # At initiation a button is defined via 
+                                   # Visible(), and it's action will be popUp()
+
+     prDoc('LetterB.pdf');
+     prEnd();
+
+
+
+=head2 A generated, personal, popup menu 
+
+Scenario:
+Your customers can get personal reports via the net or as e-mails. You want
+to add customized links to the PDF-documents, so your users can take out extra
+special reports.
+
+One solution could be to replace the file "popUp.js" in previous example with a
+string which is generated on the fly. (Probably we would have needed an extra file
+with simple password handling also, but we disregard that, not to have a too complicated
+code here. Also we skip the context, how the program knows which customer number we
+are processing.)
+
+     use PDF::Reuse;
+     use strict;
+       
+     prFile('doc/popUp2.pdf');
+
+     my ($targetString, $nameString, $menuString);
+     my $names  = 0;
+
+     ###########################################################
+     # Data is hard-coded here, but could come from a database 
+     ###########################################################
+
+     my $customer = '2345';         
+     my %reports  = ('General'      => {Overview     => 'gIndex.pdf',
+                                        Brokers      => 'brokers.pdf',
+                                        Competitors  => 'competitors.pdf'},
+                     'Status'       => {'This year'  => 'cgi-bin/saldo.pl',
+                                        'Monthly'    => 'cgi-bin/monthBal.pl',
+                                        'Last Year'  => 'cgi-bin/lYear.pl'},
+                     'Transactions' => {Purchased    => 'cgi-bin/purch.pl',
+                                        Ordered      => 'cgi-bin/ordered.pl'} );
+     for my $key (reverse (keys %reports))
+     {   menuEntry( $key, %{$reports{$key}})
+     }
+     
+     if (length($menuString) > 0)           # Any use defining a menu ?
+     {   chop($menuString);                 # Remove the last ','
+         prJs('Button.js');                 # Include code to define buttons
+         #####################################################################
+         # A template is assigned to $jsCode. Perl is supposed to replace
+         # $targetString, and so on, with runtime values
+         ##################################################################### 
+         my $jsCode = "function popUp()
+         {   var b = 'http://127.0.0.1:80/';
+             var a = [$targetString];
+             var n = [$nameString];
+             var c = app.popUpMenu($menuString);
+             for (var i = 0; i < n.length; i++)
+             {   if (c == n[i])
+                 {   var target = b + a[i] + '?Cust=$customer';
+                     get(target);
+                     break;
+                 }
+             }
+          }";
+          $jsCode =~ s/^\s+//gm;            # remove leading spaces 
+          prJs($jsCode);                    # include popUp() as a string
+
+          $jsCode = 'Visible(0, 450, 100, 100, 30,"popUp();",
+                    "Links to your other documents", "Other documents >");';
+
+          prInit($jsCode);                  # run the snippet just above
+                                            # when the document is opened
+     }
+
+     prDoc('LetterB.pdf');
+     prEnd();
+     
+     ########################################################
+     # To build JavaScript arrays, still as strings in Perl
+     ########################################################
+     sub menuEntry
+     {   my ($subject, %hash) = @_;
+         if (scalar %hash)
+         {  $menuString .= "['$subject'";
+            for my $key (reverse(keys %hash))
+            {   $nameString   .= "'$key',";
+                $targetString .= "'$hash{$key}',";
+                $menuString   .= ", n[$names]";
+                $names++; 
+            }
+            $menuString .= '],';
+         }
+     }        
+
+The popup menu is simple with only 2 levels.
+
+=head2 Embedded Links
+
+You want to embed links in your document.
+
+Include "Button.js" from previous example, and run the function "Sensitive" for
+every area where you want a link.
+
+     use PDF::Reuse;
+     use strict;
+    
+     my ($pageNo, $x, $y, $length, $depth, $link, $text, $jsCode);
+     prFile('doc/Embedded.pdf');
+   
+     prJs('Button.js');
+     
+     # ...
+
+     $pageNo = 0;           # First page for Acrobat JavaScript
+     $x      = 40;          # upper LEFT corner
+     $y      = 530;         # UPPER left corner
+     $length = 100;         # length of the sensitive area
+     $depth  = 100;         # depth of the sensitive area
+     $link   = 'http://127.0.0.1:80/theDocument.pdf';
+     $text   = 'Show this as a tool tip text';
+
+     $jsCode = "Sensitive($pageNo,$x, $y, $length, $depth,
+               \"get('$link')\", \"$text\");"; 
+
+     prInit($jsCode);
+     
+     # ...
+     
+     prEnd();
+
+        
 =head2 Generate OO-code
 
 You can generate graphic objects and subroutines from B<simple> PDF-files.
