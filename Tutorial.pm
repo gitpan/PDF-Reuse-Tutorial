@@ -3,7 +3,7 @@ package PDF::Reuse::Tutorial;
 use 5.008;
 use strict;
 
-our $VERSION = '0.01';
+our $VERSION = '0.02';
 
 1;
 __END__
@@ -765,6 +765,176 @@ If you need e.g. an internal name for a "name object", then it is most
 easy to use only Perl and one single program.
 
 An advantage with pipes or daemons is that you can get very good response times.
+
+=head2 Using PDF::Reuse from JScript/VBScript
+
+This little section is specific for Windows and is about how to make a very
+simple COM/ActiveX wrapper around PDF::Reuse.
+
+You need to have PerlScript installed on your computer. Read the User Guide that 
+comes with ActivePerl to see how that is done. 
+You also need the Windows Scripting Host (WSH), Windows Script Components,
+Windows Script Component Wizard, Windows Script Runtime, VBScript, JScript,
+Microsoft Windows Script Control and probably also documentation. Get all of 
+it from the download section at http://msdn.microsoft.com/scripting.
+
+To create a Windows Script Component, follow the instructions in ActivePerl
+User Guide - Windows Scripting - Windows Script Components - Ten Easy Steps or
+do like this:
+
+     Run the Wizard (when I downloaded it, I received the Scriptlet Wizard)
+     Enter a name
+     Enter a location
+     Click on Next
+     Choose run on Server
+     (If it is possible, choose PerlScript)
+     Click on Next
+     Click on Next (If you don't want to define a property)
+     Enter "act" under method name
+     Enter "string" as parameter name
+     Click on Next
+     Click on Finish
+     
+Now you could have something that looks a little like this (The ClassID 
+should differ):
+
+    <scriptlet>
+
+    <Registration
+        Description="PDFReuse"
+        ProgID="PDFReuse.Scriptlet"
+        Version="1.00"
+        ClassID="{6ede1a17-839b-4220-83e3-ac2ad44a45f5}"
+    >
+    </Registration>
+
+    <implements id=Automation type=Automation>
+        <method name=act>
+            <PARAMETER name=string/>
+        </method>
+    </implements>
+
+    <script language=VBScript>
+
+    function act(string)
+        act = "Temporary Value"
+    end function
+
+    </script>
+    </scriptlet>
+
+
+Now replace "VBScript" with "PerlScript" and replace the function with 
+Perl code so it looks something like this:
+
+    <scriptlet>
+
+    <Registration
+        Description="PDFReuse"
+        ProgID="PDFReuse.Scriptlet"
+        Version="1.00"
+        ClassID="{6ede1a17-839b-4220-83e3-ac2ad44a45f5}"
+    >
+    </Registration>
+
+    <implements id=Automation type=Automation>
+        <method name=act>
+            <PARAMETER name=string/>
+        </method>
+    </implements>
+
+    <script language=PerlScript>
+
+         use PDF::Reuse;
+         use strict vars;
+
+         sub act
+         {  my $line = shift;
+            my ($routine, @elem);
+            @elem = split /~/, $line;
+            $routine = 'PDF::Reuse::' . (shift @elem);
+            for (@elem)
+            {  s'<tilde>'~'og;
+            }
+            my @vector = &$routine (@elem);
+            if (defined @vector)
+            {  my $outString = join('~', (@vector));
+               return $outString;
+            } 
+            else
+            {  return '';
+            } 
+          }
+
+    </script>
+    </scriptlet>
+
+Save the file and right-click on the file name from the explorer, and choose
+"Register"
+Now you should be able to run "PDF::Reuse" from VBScript, JScript and perhaps also
+other languages which can handle COM/ActiveX objects. You send the parameters
+in a ~-separated string and receive the return value in a similar way. (If you
+want to run programs like ex23_pl, you have to write specialized COM-objects.)
+
+This is an example in VBScript:
+    
+    ' Test.vbs
+    ' Use PDF::Reuse from VBScript
+    '
+    Dim pgm
+    Dim ans
+    Set pgm = CreateObject("PDFReuse.Scriptlet")
+        ans = pgm.act("prFile~fromVB.pdf")
+        ans = pgm.act("prForm~lastYear.pdf")
+        ans = pgm.act("prText~107~685~Mr Vladimir Bosak")
+        ans = pgm.act("prEnd")
+
+Run it from the command line with >cscript Test.vbs or double-click on it from 
+the explorer. Here is the same example in JScript
+
+    // Test.js
+    // Use PDF::Reuse from JScript
+    //
+
+    var pgm = new ActiveXObject("PDFReuse.Scriptlet")
+    var ans = pgm.act("prFile~fromJS.pdf")
+        ans = pgm.act("prForm~lastYear.pdf")
+        ans = pgm.act("prText~107~685~Mr Java Script")
+        ans = pgm.act("prEnd")
+
+Here is an example of how to use it from the Internet Explorer. Probably
+it is not a very practical example.
+
+    <HEAD><TITLE>A Simple First Page</TITLE>
+    <SCRIPT LANGUAGE="JScript">
+    <!--
+    function Button1_OnClick()
+    {  var pgm = PDFREUSE;
+       var ans = pgm.act("prFile~C:/Temp/temp/fromHTML.pdf");
+           ans = pgm.act("prForm~C:/Temp/temp/lastYear.pdf~1~1");
+           ans = pgm.act("prText~107~685~Mr JavaScript HTML");
+           ans = pgm.act("prEnd");
+    }
+    -->
+    </SCRIPT>
+    </HEAD>
+    <BODY>
+    <OBJECT ID=PDFREUSE WIDTH=1 HEIGHT=1 
+    CLASSID='CLSID:6ede1a17-839b-4220-83e3-ac2ad44a45f5'>
+    </OBJECT>
+    <H3>A Simple First Page</H3><HR>
+    <FORM><INPUT NAME="Button1" TYPE="BUTTON" VALUE="Click Here" 
+       onClick=Button1_OnClick()>
+    </FORM>
+    </BODY>
+    </HTML>
+
+Change the directories (and CLASSID) so it can be run on your machine
+If something goes wrong and it is within the control of PDF::Reuse, you 
+get an error log on the desktop.
+
+The first time you run via an ActiveX object, it is fairly slow, but if you
+do it repeatedly, the performance is quit acceptable.
 
 =head2 Importing an image
 
