@@ -2,7 +2,7 @@ package PDF::Reuse::Tutorial;
 
 use strict;
 
-our $VERSION = '0.06';
+our $VERSION = '0.07';
 
 1;
 
@@ -1187,14 +1187,9 @@ this:
 
    function nameAddress(page, xpos, ypos)
    {  var thePage = 0;
-      if (this.info.ModDate)
-      {  return true;         
-      }
-   
       if (page)
       {   thePage = page;
       }
-	
       var myRec = [ 40, 650, 0, 0];              // default position
       if (xpos)
       {   myRec[0] = xpos;
@@ -1250,6 +1245,7 @@ A little program that uses the script could look like this:
 
    prDocDir('doc');
    prFile('Ex15.pdf');
+   prCompress(1);                   # To compress new JavaScripts
    prJs('script1.js');              # To include the JavaScript
    prInit('nameAddress();');        # To call nameAddress(); at start up
    prEnd();
@@ -1372,14 +1368,11 @@ To accomplish this, we create 2 JavaScrips.
 
 The first JavaScript, "Button.js", consists of 3 functions. "Sensitive" defines an
 area. If you move your mouse into it, you get a tool tip text, and if you click within
-it you trigger an action. "get" fetches something over the net. "Visible" is a
-continuation of Sensitive. It makes an area into a visible button.
+it you trigger an action. "get" fetches something over the net. "But" creates a
+visible button.
 
     function Sensitive(page, x, upperY, length, depth, action, toolTip)
-    {  if (this.info.ModDate)
-       { return true; 
-       }
-       var myRec = [ 400, 50, 100, 12];
+    {  var myRec = [ 400, 50, 100, 12];
 	    if (x)
 	    {  myRec[0] = x;
 	    }
@@ -1402,20 +1395,38 @@ continuation of Sensitive. It makes an area into a visible button.
        if (toolTip)
        {   f.userName = toolTip;
        }
-       return f;
     }
-
     function get(target)
     {  this.getURL(target, false);
     } 
  
-
-    function Visible(page, x, upperY, length, depth, action, toolTip, cap)
-    {   var ff = Sensitive(page, x, upperY, length, depth, action, toolTip);
-        ff.buttonSetCaption(cap);
-        ff.display     = display.noPrint;
-        ff.borderStyle = border.i;
-        // ff.fillColor = color.ltGray;
+    function But(page, x, upperY, length, depth, action, toolTip, cap)
+    {  var myRec = [ 400, 50, 100, 12];
+	    if (x)
+	    {  myRec[0] = x;
+	    }
+	    if (upperY)
+	    { myRec[1] = upperY;
+	    }
+   
+       if (length)
+       {  myRec[2] = myRec[0] + length;
+       }
+       if (depth)
+       {  myRec[3] = myRec[1] - depth;
+       }
+       var fName = 'p' + page + 'x' + x + 'y' + upperY; 
+       var f = this.addField(fName,"button", page , myRec);
+       if (action)
+       {   f.setAction("MouseUp", action);
+       }
+       if (toolTip)
+       {   f.userName = toolTip;
+       }
+       f.buttonSetCaption(cap);
+       f.display     = display.noPrint;
+       f.borderStyle = border.i;
+       f.fillColor   = ["RGB", 0.6, 0.6, 0.95];
     }
 
 The standard popup menu is defined in "popUp.js".
@@ -1455,16 +1466,16 @@ in the lower right corner.
      use strict;
 
      prFile('doc/popup1.pdf');
-
+     
      prJs('Button.js');            # First JavaScript is included
 
      prJs('popUp.js');             # Second JavaScript is included
 
-     my $jsCode = 'Visible(0, 450, 100, 100, 30,"popUp();",
+     my $jsCode = 'But(0, 450, 200, 100, 30,"popUp();",
                    "Links to related documents", "Other documents >");';
 
      prInit($jsCode);              # At initiation a button is defined via 
-                                   # Visible(), and it's action will be popUp()
+                                   # But(), and it's action will be popUp()
 
      prDoc('LetterB.pdf');
      prEnd();
@@ -1579,7 +1590,7 @@ You want to build a popup menu from a structure of hashes and arrays of hashes.
 Each hash can have these components
      
      text   
-     kids | act   an JavaScript action
+     kids | act   a JavaScript action
 
 
 The structure could also be used to create bookmarks, but here it is a little more
@@ -1588,7 +1599,8 @@ define bookmarks, but you feel that they are too closely connected to the
 structure of the document.) 
 There should have been a routine to handle passwords in this example, but we
 disregard that, not to complicate the code too much. Also there should a
-query string at the end of most URLs.
+query string at the end of most URLs. (Look at "Filling in a form without spending
+a fortune" for an example with an URL-encoded query string.)
 
 You build a menu structure which is transformed to a function by the subroutine
 "translate" 
@@ -1596,29 +1608,29 @@ You build a menu structure which is transformed to a function by the subroutine
     use PDF::Reuse;
     use strict;
      
-    prFile('doc/bokm.pdf');
-
+    prFile('doc/popUp2.pdf');
+    prCompress(1);
     my $tree  = [ { text => 'General',
                     kids => [  {text => 'Overview',
-                                 act  => 'get("http://107.0.0.1/gIndex.pdf");'},
+                                 act  => 'get("http://127.0.0.1/gIndex.pdf");'},
                                 {text => 'Brokers',
-                                 act  => 'get("http://107.0.0.1/brokers.pdf");'},
+                                 act  => 'get("http://127.0.0.1/brokers.pdf");'},
                                 {text => 'Competitors',
-                                 act  => 'get("http://107.0.0.1/competitors.pdf");'}
+                                 act  => 'get("http://127.0.0.1/competitors.pdf");'}
                             ] },
                   { text => 'Status',
                     kids => [  {text  => 'This year',
-                                act   => 'get("http://107.0.0.1/cgi-bin/saldo.pl");'},
+                                act   => 'get("http://127.0.0.1/cgi-bin/saldo.pl");'},
                                {text  => 'Monthly',
-                                act   => 'get("http://107.0.0.1/cgi-bin/monthBal.pl");'},
+                                act   => 'get("http://127.0.0.1/cgi-bin/monthBal.pl");'},
                                {text  => 'Last Year',
-                                act   => 'get("http://107.0.0.1/cgi-bin/lYear.pl")'}
+                                act   => 'get("http://127.0.0.1/cgi-bin/lYear.pl")'}
                             ] },
                   { text => 'Transactions',
                     kids =>  [ {text => 'Purchased',
-                                act  => 'get("http://107.0.0.1/cgi-bin/purch.pl");' },
+                                act  => 'get("http://127.0.0.1/cgi-bin/purch.pl");' },
                                {text => 'Ordered',
-                                act  => 'get("http://107.0.0.1/cgi-bin/ordered.pl");'} 
+                                act  => 'get("http://127.0.0.1/cgi-bin/ordered.pl");'} 
                              ]}
                 ];
         
@@ -1628,8 +1640,8 @@ You build a menu structure which is transformed to a function by the subroutine
 
      prJs('Button.js');                 # Include code to define buttons
         
-     $str = 'Visible(0, 450, 100, 100, 30,"popUp1();",
-                    "Links to your other documents", "Other documents >");';          
+     $str = 'But(0, 450, 100, 100, 30,"popUp1();",
+            "Links to your other documents", "Other documents >");';          
           
      prInit($str);                      # runs the snippet just above
                                         # when the document is opened
@@ -1733,6 +1745,162 @@ every area where you want a link.
      # ...
      
      prEnd();
+
+=head2 Filling in a form without spending a fortune
+
+If you want to fill in a form over the net, the simplest way is just to use HTML.
+That is cheap and straightforward. If you want to use a PDF-form, you will 
+get new expenses. All your users will need something better and more expensive
+than the Reader, or they will need a plug in, or you will have to invest in
+server programs which can extend the rights of the PDF-documents.
+Anyway, in all these cases there is a price tag, and it can be substantial.
+
+Another simple alternative could be to send data from a PDF-document back to the
+server with the help of JavaScript and a getURL-sentence. (Data is not yet encrypted,
+and the user can't save the form, and there are also other shortcomings, so still
+there might be reasons for heavy investments.)
+
+Here is an example of a newsletter which can be sent by mail. At the end of the
+document there are some fields with name and address and a button to unsubscribe.
+
+You have produced a newsletter from a web page e.g. with HTMLDOC or Web Capture
+from Acrobat. Let's call it "newsTemplate.pdf". It is 4 pages. We create a little
+program which takes this document and adds a page with a simple fill-in form. First
+we need a JavaScript which defines the fields, and then we need another one which 
+collects data from the fields, creates and URL-encodes the query string and at last 
+sends the request.
+The file with JavaScript functions could look a little like this 
+("fillIn.js")
+
+   
+   function fieldsAndButtons(page, x, y)   
+   {  var l;     
+      var d;
+      var labelText = [ "Mr_Ms", "First_Name", "Surname",
+                        "Address", "City", "Zip_Code", "Country",
+                        "Phone", "Mobile_Phone", "E-mail",
+                        "Company", "Interest_1", "Interest_2",
+                        "Interest_3" ];   
+   
+      for ( var i = 0; i < labelText.length; i++)
+      {   l = x + 80;               // length of the label
+          d = y - 15;               // depth / hight 
+
+          // a label field is created
+
+          var fieldName = labelText[i] + "Label";
+          var lf1       = this.addField(fieldName, "text", page, [x,y,l,d]);
+          lf1.fillColor = color.white;
+          lf1.textColor = color.black;
+          lf1.readonly  = true;
+          lf1.textSize  = 12;
+          lf1.defaultValue = labelText[i];
+          lf1.value     = labelText[i];
+          lf1.display   = display.visible;
+
+          // a text field for the customer to fill-in his/her data is created   
+ 
+          x = l + 2;               // move 2 pixels to the right 
+          l = x + 140;             // length of the fill-in field
+
+          var tf1         = this.addField(labelText[i], "text", page, [x,y,l,d]);
+          tf1.fillColor   = color.ltGray;
+          tf1.textColor   = color.black;
+          tf1.borderStyle = border.s;
+          tf1.textSize    = 12;
+          tf1.display     = display.visible;
+      
+          x = x - 82    // move 82 pixels to the left
+          y = y - 17;   // move 17 pixels down
+      }
+      y = y + 34;
+      x = x + 250;
+      l = x + 75;
+      d = y - 30;
+      var f = this.addField("ButUpdate","button", page , [x,y,l,d]);
+      f.setAction("MouseUp", "sendUpdates()");
+      f.userName = "Press here to send updated data from this form";
+      f.buttonSetCaption("Update");
+      f.borderStyle = border.b;
+      f.fillColor   = ["RGB", 0.6, 0.6, 0.95];
+      y = y - 60;
+      d = y - 30;
+      var f = this.addField("ButUnsubscribe","button", page , [x,y,l,d]);
+      f.setAction("MouseUp", "unSubscribe()");
+      f.userName = "Press here to unsubscribe to the newsletter";
+      f.buttonSetCaption("Unsubscribe");
+      f.borderStyle = border.b;
+      f.fillColor   = ["RGB", 0.95, 0.9, 0.9];             
+   }
+
+   function unSubscribe()
+   {  var dest = 'http://127.0.0.1:80/cgi-bin/unsubscr.pl?cust=' + getCust() + '&nl'; 
+      this.getURL(dest, false);
+   }
+   function sendUpdates()
+   {  var str = '';
+      for (var i = 0; i < this.numFields; i++)
+      {   var theName = this.getNthFieldName(i);
+          var f = this.getField(theName);
+          if ((f.type == 'text') && (f.defaultValue != f.value)) 
+          {   str = str + theName + '=' + hexEncode(f.value) + '&';
+          }
+      }
+      var dest = 'http://127.0.0.1:80/cgi-bin/update.pl?cust=' + getCust() + '&' + str; 
+      this.getURL(dest, false);
+   }
+   function hexEncode(str)
+   {   var out = '';
+       for (var i = 0; i < str.length; i++)
+       {  var num = str.charCodeAt(i);
+          if ((num < 48) || (num > 122) || ((num > 57) && (num < 65))
+          || ((num > 90) && (num < 97))) 
+             out = out + '%' + util.printf("%x", num);
+          else
+             out = out + str[i];
+       }
+       return out;  
+   }
+
+
+The Perl program that produces the newsletter could look like this
+
+     use PDF::Reuse;
+     use Mail::Sender;
+     use strict;
+    
+     my $now = localtime;
+
+     my $sender = new Mail::Sender {smtp => 'smtp.company.com', 
+                                    from => 'us@myJob.com'};
+
+     my @customers = (1, 2, 3, 4, 5);     # And lots of others
+     my %addresses = (1 => 'a@com', 
+                      2 => 'b@com',
+                      3 => 'c@com',
+                      4 => 'd@com',
+                      5 => 'e@com');      # and lots of others
+ 
+     for my $cust (@customers)
+     {   if (! exists $addresses{$cust})
+         {  next;
+         }
+         prFile("news$cust.pdf");
+         prCompress(1);
+         prJs('fillIn.js');
+         prJs("function getCust() { return '$cust'; }");     
+         my $jsCode = "fieldsAndButtons(4, 100, 800);";
+         prInit($jsCode);
+         prDoc('newsTemplate.pdf');
+         prPage();
+         prText(10, 100, ' ');        
+         prEnd();
+         
+         $sender->MailFile(  {to      => $addresses{$cust},
+                              subject => "News, $now",
+                              msg     => 'Your newsletter',
+                              file    => "news$cust.pdf"} );        
+     }
 
 
 =head2 Generate OO-code
