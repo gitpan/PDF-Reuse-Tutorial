@@ -1,5 +1,8 @@
 Revision history for Perl extension PDF::Reuse::Tutorial.
 
+0.06  Wed Sep 3 2003
+      A new example about how to produce bookmarks. Also
+      an example how to make "individual" popup menus.
 0.05  Sun Aug 17
      Added 3 examples with links
 0.04  Thu June 5

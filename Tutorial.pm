@@ -2,7 +2,7 @@ package PDF::Reuse::Tutorial;
 
 use strict;
 
-our $VERSION = '0.05';
+our $VERSION = '0.06';
 
 1;
 
@@ -20,7 +20,7 @@ and then if you are interested, you can look at Graphics and JavaScript, so you 
 to do special things.
 
 
-=head3 Reusing code:
+=head2 Reusing code:
 
 You can take advantage of what has been done before, it is not necessary to start
 from scratch every time you create a PDF-file. You use old PDF-files as a source for
@@ -34,7 +34,7 @@ how create single files with PDF::Reuse. That is possible, but more of an except
 I do it here to show the technique. You will anyway need it to add texts and graphics
 to your templates.   
 
-=head3 Graphics:
+=head2 Graphics:
 
 With this module you get a good possibility to program directly with the
 basic graphic operators of PDF. This is perhaps an advanced level, and you can
@@ -48,7 +48,7 @@ Whenever the function prAdd() is used in this tutorial, you can probably get mor
 explanations in the "PDF-reference manual". The code, you add to the content
 stream with prAdd(), has to follow the PDF syntax completely.
 
-=head3 JavaScript:
+=head2 JavaScript:
 
 You can add JavaScript to your PDF-file programmatically. This works with Acrobat
 Reader 5.1 or Acrobat 5.0 and higher versions.
@@ -74,6 +74,7 @@ line with prFile(..) in most examples with the lines:
      print STDOUT "Content-Type: application/pdf \r\n\r\n";
      prFile();
 
+B<N.B. There are no model programs in this document, just examples.>
 
 =head2 A very basic program
    
@@ -1174,7 +1175,7 @@ understand what you are referring to.
 The "normal" way to define interactive fields, is to use Acrobat as a screen
 painter. You draw your fields, write your JavaScript, or cut and paste, and so
 on. It is convenient for single files, but if you are going to produce thousands
-of files, which are not going to look exactly the same, it is not very pracical.
+of files, which are not going to look exactly the same, it is not very practical.
 I guarantee you get tired very quickly.
 
 Then it is better to do the job programmatically. Here is an example:
@@ -1354,7 +1355,7 @@ it electronically and send it back by mail. The form data will be transferred
 as an FDF-file, which is fairly compact.
 If the user has Acrobat Reader he doesn't get any buttons to sign or return the data by 
 mail. He simply has to fill in the form, print it, sign it with a pencil and send the
-page by fax. (Adobe now has server programs which can extend the "document rights" so
+page by fax. (Adobe has server programs which can extend the "document rights" so
 you can sign and save documents also with the Reader. I haven't tested PDF::Reuse
 together with these programs, but if it could be used, the JavaScripts could be changed
 and the program would be much more useful.) 
@@ -1364,22 +1365,21 @@ file.
 
 =head2 A popup menu with common links
 
-You have some PDF-files on your web site, and now you want add a standard popup menu
-with links to your documents.
+You have some PDF-files on your web site, and now you want to add a standard popup 
+menu with links to your documents.
 
-To accomplish this, we create 2 javascrips.
+To accomplish this, we create 2 JavaScrips.
 
-The first javascript, "Button.js", consists of 3 functions. "Sensitive" defines an
+The first JavaScript, "Button.js", consists of 3 functions. "Sensitive" defines an
 area. If you move your mouse into it, you get a tool tip text, and if you click within
 it you trigger an action. "get" fetches something over the net. "Visible" is a
 continuation of Sensitive. It makes an area into a visible button.
 
     function Sensitive(page, x, upperY, length, depth, action, toolTip)
     {  if (this.info.ModDate)
-       { return true;         
+       { return true; 
        }
-   
-	    var myRec = [ 400, 50, 100, 12];
+       var myRec = [ 400, 50, 100, 12];
 	    if (x)
 	    {  myRec[0] = x;
 	    }
@@ -1470,102 +1470,241 @@ in the lower right corner.
      prEnd();
 
 
+=head2 Merging paper, bookmarks and the web   
 
-=head2 A generated, personal, popup menu 
+Bookmarks can help you to navigate better within a document, this is what they are
+mainly used for, but they are not limited to that. They can also e.g. give more
+information about your data and connect to links outside your document.  
 
-Scenario:
-Your customers can get personal reports via the net or as e-mails. You want
-to add customized links to the PDF-documents, so your users can take out extra
-special reports.
+In this example we imagine that a company sends out printed annual statements to
+their customers. Now the company will also make the statements available via the
+web and via mail. The paper will look exactly the same, regardless of how
+you get it, but if it arrives electronically, the customer will have the chance 
+of getting more information from it.
 
-One solution could be to replace the file "popUp.js" in previous example with a
-string which is generated on the fly. (Probably we would have needed an extra file
-with simple password handling also, but we disregard that, not to have a too complicated
-code here. Also we skip the context, how the program knows which customer number we
-are processing.)
+While the program assembles the PDF-document it also creates bookmarks
+with references and links.
 
-     use PDF::Reuse;
-     use strict;
-       
-     prFile('doc/popUp2.pdf');
+      use PDF::Reuse;
+      use strict;
 
-     my ($targetString, $nameString, $menuString);
-     my $names  = 0;
+      my ($assetsThisYear, $assetsLastYear, %shares, %transactions);
 
-     ###########################################################
-     # Data is hard-coded here, but could come from a database 
-     ###########################################################
+      prFile('report.pdf');
 
-     my $customer = '2345';         
-     my %reports  = ('General'      => {Overview     => 'gIndex.pdf',
-                                        Brokers      => 'brokers.pdf',
-                                        Competitors  => 'competitors.pdf'},
-                     'Status'       => {'This year'  => 'cgi-bin/saldo.pl',
-                                        'Monthly'    => 'cgi-bin/monthBal.pl',
-                                        'Last Year'  => 'cgi-bin/lYear.pl'},
-                     'Transactions' => {Purchased    => 'cgi-bin/purch.pl',
-                                        Ordered      => 'cgi-bin/ordered.pl'} );
-     for my $key (reverse (keys %reports))
-     {   menuEntry( $key, %{$reports{$key}})
-     }
+      ##################################################################
+      # Define two small JavaScripts functions. The first one fetches  
+      # a document over the net. The second one shows an alert box 
+      # with information
+      ##################################################################
+
+      my $str = 'function get(url) { this.getURL(url, false);}'
+              . ' function inf(string) { app.alert(string, 3);}';
+      prJs($str);
+
+      # Reading a database	to get shares, links to companies and
+      # transactions during the year
+      # (In a real case it would be easier to create @sharesArray and @transArray
+      # without any intermediate steps)
+      #
+      # If you want to test-run, remove the '#'-signs below and replace 
+      # template.pdf with a file that can be used as a form
+      #      
+      # $assetsThisYear   = 300000;
+      # $assetsLastYear   = 250000;
+      # %shares   = ( 'ABB B'     => 'http://www.abb.com',
+      #               'Ixzcon B'  => 'http://www.ixzcon.com',
+      #               'Nokia B'   => 'http://www.nokia.com');
+      #                     
+      # %transactions  = ('2003-05-05-SE12345' => 'Sold 200 Alfa Laval B at 150 SEK',
+      #                   '2003-05-20-BU23456' => 'Bought 300 Ixzcon B at 99 SEK',
+      #                   '2003-05-21-SE34567' => 'Sold 45 Int.Minining at 4000 SEK',
+      #                   '2003-06-10-BU7896'  => 'Bought 18000 ABB at 14 SEK',
+      #                   '2003-07-15-BU4567'  => 'Bought 2000 Nokia at 200 SEK');
+      # 
+      # prForm('template.pdf');          
+
+      if (scalar %shares)
+      {   my @sharesArray;
+          for (keys %shares)
+          {   ###############################################################
+              # Create an array of bookmark hashes. One hash for each share.
+              # The text will be in blue and italic. You can fetch more 
+              # information over the net
+              ###############################################################
+              push @sharesArray, { text  => "External: $_",
+                                   style => 1,
+                                   color => '0.2 0.2 0.7',
+                                   act   => "get('$shares{$_}');" };
+          }
+
+          ###################################################################
+          # Create a bookmark with the text 'Assets', connect it to a point
+          # in the document, and put the bookmarks for shares under it
+          ###################################################################
+          prBookmark( { text => 'Assets',
+                        act  => '0, 350, 380',
+                        kids => \@sharesArray } );
+      }
+
+      #################################################################
+      # Create an array of (closed) bookmarks for each transaction
+      # They are here only for information. (The customer should have
+      # received more detailed information earlier.)
+      #################################################################
+
+      if (scalar %transactions)
+      {   my @array;
+          for (sort (keys %transactions))
+          {   push @array, { text => $_,
+                             color => '0.5 0.1 0.1',
+                             close => 1,
+                             act  => "inf('$transactions{$_}');" };
+          }
+          prBookmark( { text => "Transactions (Unlinked)",
+                        kids => \@array } );
+      }
+
+      # ...
+
+      prText(350, 400, $assetsLastYear);
+      prText(350, 380, $assetsThisYear);
+
+      prEnd();
+      
+
+=head2 Popup menu 2
+
+You want to build a popup menu from a structure of hashes and arrays of hashes.
+Each hash can have these components
      
-     if (length($menuString) > 0)           # Any use defining a menu ?
-     {   chop($menuString);                 # Remove the last ','
-         prJs('Button.js');                 # Include code to define buttons
-         #####################################################################
-         # A template is assigned to $jsCode. Perl is supposed to replace
-         # $targetString, and so on, with runtime values
-         ##################################################################### 
-         my $jsCode = "function popUp()
-         {   var b = 'http://127.0.0.1:80/';
-             var a = [$targetString];
+     text   
+     kids | act   an JavaScript action
+
+
+The structure could also be used to create bookmarks, but here it is a little more
+limited. Only hashes without kids can have actions. (It is perhaps easier to
+define bookmarks, but you feel that they are too closely connected to the
+structure of the document.) 
+There should have been a routine to handle passwords in this example, but we
+disregard that, not to complicate the code too much. Also there should a
+query string at the end of most URLs.
+
+You build a menu structure which is transformed to a function by the subroutine
+"translate" 
+
+    use PDF::Reuse;
+    use strict;
+     
+    prFile('doc/bokm.pdf');
+
+    my $tree  = [ { text => 'General',
+                    kids => [  {text => 'Overview',
+                                 act  => 'get("http://107.0.0.1/gIndex.pdf");'},
+                                {text => 'Brokers',
+                                 act  => 'get("http://107.0.0.1/brokers.pdf");'},
+                                {text => 'Competitors',
+                                 act  => 'get("http://107.0.0.1/competitors.pdf");'}
+                            ] },
+                  { text => 'Status',
+                    kids => [  {text  => 'This year',
+                                act   => 'get("http://107.0.0.1/cgi-bin/saldo.pl");'},
+                               {text  => 'Monthly',
+                                act   => 'get("http://107.0.0.1/cgi-bin/monthBal.pl");'},
+                               {text  => 'Last Year',
+                                act   => 'get("http://107.0.0.1/cgi-bin/lYear.pl")'}
+                            ] },
+                  { text => 'Transactions',
+                    kids =>  [ {text => 'Purchased',
+                                act  => 'get("http://107.0.0.1/cgi-bin/purch.pl");' },
+                               {text => 'Ordered',
+                                act  => 'get("http://107.0.0.1/cgi-bin/ordered.pl");'} 
+                             ]}
+                ];
+        
+     my $str = translate('popUp1', $tree);
+
+     prJs($str);                        # include popUp1() as a string
+
+     prJs('Button.js');                 # Include code to define buttons
+        
+     $str = 'Visible(0, 450, 100, 100, 30,"popUp1();",
+                    "Links to your other documents", "Other documents >");';          
+          
+     prInit($str);                      # runs the snippet just above
+                                        # when the document is opened
+        
+     prDoc('LetterB.pdf');
+     prEnd();
+
+     ###########################################################
+     # From here on, in this subroutine, the menu structure is 
+     # translated to a string
+     ###########################################################
+
+     sub translate
+     {   my $funcName = shift;
+         my $param    = shift;
+         my $i = 0;
+         my ($targetString, $nameString, $menuString);
+         
+         if (ref($param) eq 'HASH')
+         {   descend($param);
+         }
+         elsif (ref($param) eq 'ARRAY')
+         {   for (@{$param})
+             {  descend ($_);
+             }
+         }
+         chop($menuString);
+         chop($nameString);
+         chop($targetString);
+         
+         my $jsCode = "function $funcName()
+         {   var a = [$targetString];
              var n = [$nameString];
              var c = app.popUpMenu($menuString);
              for (var i = 0; i < n.length; i++)
              {   if (c == n[i])
-                 {   var target = b + a[i] + '?Cust=$customer';
-                     get(target);
+                 {   eval(a[i]);
                      break;
                  }
              }
           }";
           $jsCode =~ s/^\s+//gm;            # remove leading spaces 
-          prJs($jsCode);                    # include popUp() as a string
-
-          $jsCode = 'Visible(0, 450, 100, 100, 30,"popUp();",
-                    "Links to your other documents", "Other documents >");';
-
-          prInit($jsCode);                  # run the snippet just above
-                                            # when the document is opened
-     }
-
-     prDoc('LetterB.pdf');
-     prEnd();
+          return $jsCode;
      
-     ########################################################
-     # To build JavaScript arrays, still as strings in Perl
-     ########################################################
-     sub menuEntry
-     {   my ($subject, %hash) = @_;
-         if (scalar %hash)
-         {  $menuString .= "['$subject'";
-            for my $key (reverse(keys %hash))
-            {   $nameString   .= "'$key',";
-                $targetString .= "'$hash{$key}',";
-                $menuString   .= ", n[$names]";
-                $names++; 
-            }
-            $menuString .= '],';
-         }
-     }        
-
-The popup menu is simple with only 2 levels.
+     
+          sub descend
+          {   my $struct = shift;
+              if (ref($struct) eq 'ARRAY')
+              {  for (@{$struct})
+                 {   descend ($_);
+                 }
+              }
+              elsif (ref($struct) eq 'HASH')
+              {   my %hash = %$struct;
+                  if (exists $hash{'kids'})
+                  {   $menuString .= "['$hash{'text'}',";
+                      descend ($hash{'kids'});
+                      chop($menuString);
+                      $menuString .= "],";
+                  }
+                  else
+                  {   $nameString   .= "'$hash{'text'}',";
+                      $targetString .= "'$hash{'act'}',";
+                      $menuString   .= "n[$i],";
+                      $i++;
+                  }
+              } 
+          }
+     }
 
 =head2 Embedded Links
 
 You want to embed links in your document.
 
-Include "Button.js" from previous example, and run the function "Sensitive" for
+Include "Button.js" from a previous example, and run the function "Sensitive" for
 every area where you want a link.
 
      use PDF::Reuse;
@@ -1595,7 +1734,7 @@ every area where you want a link.
      
      prEnd();
 
-        
+
 =head2 Generate OO-code
 
 You can generate graphic objects and subroutines from B<simple> PDF-files.
@@ -2002,7 +2141,7 @@ modify it under the same terms as Perl itself.
 
 =head1 DISCLAIMER
 
-You get this tutorial free as it is, but NOTHING IS GUARANTEED to work, whatever 
+You get this tutorial free as it is, but nothing is guaranteed to work, whatever 
 implicitly or explicitly stated in this document, and everything you do, 
-you do AT YOUR OWN RISK - I will not take responsibility 
+you do at your own risk - I will not take responsibility 
 for any damage, loss of money and/or health that may arise from the use of this document!
