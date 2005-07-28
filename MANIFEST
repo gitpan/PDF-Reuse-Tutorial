@@ -15,3 +15,4 @@ examples/script1.js
 examples/weather.dat
 examples/weatherObj_pl
 examples/unzipThis.zip
+META.yml                                 Module meta-data (added by MakeMaker)
